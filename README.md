@@ -1,2 +1,2 @@
 # ma35d1-portal
-tutorials, FAQs
+tutorials, FAQs, static GitHub pages
