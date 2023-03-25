@@ -1,3 +1,5 @@
+#!/bin/sh
+
 #
 # Nuvoton (C) 2023 twjiang@nuvoton.com
 #
@@ -13,8 +15,6 @@
 #
 # $ source ${BR2_DIR}/path/to/save-configs.sh
 #
-
-#!/bin/sh
 
 # =============================================================================
 # BLACK			0;30		DARK GRAY		1;30
