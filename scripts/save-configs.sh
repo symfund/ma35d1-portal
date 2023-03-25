@@ -4,6 +4,9 @@
 # A script auto saves user's custom configs (buildroot/kernel/uboot) 
 # to the location defined by local.mk.
 #
+# Origin: 
+# https://raw.githubusercontent.com/symfund/ma35d1-portal/master/scripts/save-configs.sh
+#
 # Usage:
 # put this script into ${BR2_DIR}/path/to/save-configs.sh
 # change directory to ${BR2_DIR}, that is the root of Buildroot, run this script: 
