@@ -1,2 +1,13 @@
 # ma35d1-portal
 tutorials, FAQs, static GitHub pages
+
+# Silently Noninteractively Configure Buildroot to Save Custom Configuration Files for Buildroot, Linux and U-Boot
+See: https://raw.githubusercontent.com/symfund/ma35d1-portal/master/scripts/save-configs.sh
+
+# Overriding Packages Source Directory
+To override packages source drectory, by creating a file 'local.mk' in the Buildroot directory with content like the below
+```
+ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR=$(CONFIG_DIR)/workspace/tf-a
+UBOOT_OVERRIDE_SRCDIR=$(CONFIG_DIR)/workspace/uboot
+LINUX_OVERRIDE_SRCDIR=$(CONFIG_DIR)/workspace/linux
+```
