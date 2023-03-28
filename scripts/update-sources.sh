@@ -46,7 +46,7 @@ until git pull origin master; do echo -e "${YELLOW}failed to update linux reposi
 echo -e "${RED}update linux repository succeeded.${NCOLOR}"
 
 # Update U-Boot
-cd ${$UBOOT_OVERRIDE_SRCDIR}
+cd ${UBOOT_OVERRIDE_SRCDIR}
 until git pull origin master; do echo -e "${YELLOW}failed to update uboot repository, retry ...${NCOLOR}" ; done
 echo -e "${RED}update uboot repository succeeded.${NCOLOR}"
 
