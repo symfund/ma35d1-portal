@@ -37,26 +37,46 @@ else
 fi
 
 # Update buildroot
+if [ ! -d ".git" ] ; then
+	echo -e "${YELLOW}The source code of buildroot is not controlled by a git repository!${NCOLOR}"
+	return
+fi
 until git pull origin master ; do echo -e "${YELLOW}failed to update buildroot repository, retry ...${NCOLOR}" ; done
 echo -e "${RED}update buildroot repository succeeded.${NCOLOR}"
 
 # Update Linux
 cd ${LINUX_OVERRIDE_SRCDIR}
+if [ ! -d ".git" ] ; then
+	echo -e "${YELLOW}The source code of linux is not controlled by a git repository!${NCOLOR}"
+	return
+fi
 until git pull origin master; do echo -e "${YELLOW}failed to update linux repository, retry ...${NCOLOR}" ; done
 echo -e "${RED}update linux repository succeeded.${NCOLOR}"
 
 # Update U-Boot
 cd ${UBOOT_OVERRIDE_SRCDIR}
+if [ ! -d ".git" ] ; then
+	echo -e "${YELLOW}The source code of uboot is not controlled by a git repository!${NCOLOR}"
+	return
+fi
 until git pull origin master; do echo -e "${YELLOW}failed to update uboot repository, retry ...${NCOLOR}" ; done
 echo -e "${RED}update uboot repository succeeded.${NCOLOR}"
 
 # Update TF-A
 cd ${ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR}
+if [ ! -d ".git" ] ; then
+	echo -e "${YELLOW}The source code of tf-a is not controlled by a git repository!${NCOLOR}"
+	return
+fi
 until git pull origin master; do echo -e "${YELLOW}failed to update tf-a repository, retry ...${NCOLOR}" ; done
 echo -e "${RED}update tf-a repository succeeded.${NCOLOR}"
 
 # Update optee-os
 cd ${OPTEE_OS_OVERRIDE_SRCDIR}
+if [ ! -d ".git" ] ; then
+	echo -e "${YELLOW}The source code of optee-os is not controlled by a git repository!${NCOLOR}"
+	return
+fi
 until git pull origin master; do echo -e "${YELLOW}failed to update optee-os repository, retry ...${NCOLOR}" ; done
 echo -e "${RED}update optee-os repository succeeded.${NCOLOR}"
 
