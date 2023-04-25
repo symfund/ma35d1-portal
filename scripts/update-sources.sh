@@ -6,10 +6,10 @@
 # A script updates the sources for buildroot, uboot, linux, tf-a and optee-os.
 #
 # Usage:
-# put this script into ${BR2_DIR}/path/to/update-sources.sh
+# put this script into /path/to/update-sources.sh
 # change directory to ${BR2_DIR}, that is the root of Buildroot, run this script: 
 #
-# $ source ${BR2_DIR}/path/to/update-sources.sh
+# $ source /path/to/update-sources.sh
 #
 
 # =============================================================================
@@ -39,6 +39,7 @@ fi
 # Update buildroot
 if [ ! -d ".git" ] ; then
 	echo -e "${YELLOW}The source code of buildroot is not controlled by a git repository!${NCOLOR}"
+	cd ${CURDIR}
 	return
 fi
 until git pull origin master ; do echo -e "${YELLOW}failed to update buildroot repository, retry ...${NCOLOR}" ; done
@@ -48,6 +49,7 @@ echo -e "${RED}update buildroot repository succeeded.${NCOLOR}"
 cd ${LINUX_OVERRIDE_SRCDIR}
 if [ ! -d ".git" ] ; then
 	echo -e "${YELLOW}The source code of linux is not controlled by a git repository!${NCOLOR}"
+	cd ${CURDIR}
 	return
 fi
 until git pull origin master; do echo -e "${YELLOW}failed to update linux repository, retry ...${NCOLOR}" ; done
@@ -57,27 +59,36 @@ echo -e "${RED}update linux repository succeeded.${NCOLOR}"
 cd ${UBOOT_OVERRIDE_SRCDIR}
 if [ ! -d ".git" ] ; then
 	echo -e "${YELLOW}The source code of uboot is not controlled by a git repository!${NCOLOR}"
+	cd ${CURDIR}
 	return
 fi
 until git pull origin master; do echo -e "${YELLOW}failed to update uboot repository, retry ...${NCOLOR}" ; done
 echo -e "${RED}update uboot repository succeeded.${NCOLOR}"
 
 # Update TF-A
-cd ${ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR}
-if [ ! -d ".git" ] ; then
-	echo -e "${YELLOW}The source code of tf-a is not controlled by a git repository!${NCOLOR}"
-	return
+if [[ ! -z "${ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR}" ]] ; then
+	cd ${ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR}
+	if [ ! -d ".git" ] ; then
+		echo -e "${YELLOW}The source code of tf-a is not controlled by a git repository!${NCOLOR}"
+		cd ${CURDIR}
+		return
+	fi
+
+	until git pull origin master; do echo -e "${YELLOW}failed to update tf-a repository, retry ...${NCOLOR}" ; done
+	echo -e "${RED}update tf-a repository succeeded.${NCOLOR}"
 fi
-until git pull origin master; do echo -e "${YELLOW}failed to update tf-a repository, retry ...${NCOLOR}" ; done
-echo -e "${RED}update tf-a repository succeeded.${NCOLOR}"
 
 # Update optee-os
-cd ${OPTEE_OS_OVERRIDE_SRCDIR}
-if [ ! -d ".git" ] ; then
-	echo -e "${YELLOW}The source code of optee-os is not controlled by a git repository!${NCOLOR}"
-	return
+if [[ ! -z "${OPTEE_OS_OVERRIDE_SRCDIR}" ]] ; then
+	cd ${OPTEE_OS_OVERRIDE_SRCDIR}
+	if [ ! -d ".git" ] ; then
+		echo -e "${YELLOW}The source code of optee-os is not controlled by a git repository!${NCOLOR}"
+		cd ${CURDIR}
+		return
+	fi
+
+	until git pull origin master; do echo -e "${YELLOW}failed to update optee-os repository, retry ...${NCOLOR}" ; done
+	echo -e "${RED}update optee-os repository succeeded.${NCOLOR}"
 fi
-until git pull origin master; do echo -e "${YELLOW}failed to update optee-os repository, retry ...${NCOLOR}" ; done
-echo -e "${RED}update optee-os repository succeeded.${NCOLOR}"
 
 cd ${CURDIR}
