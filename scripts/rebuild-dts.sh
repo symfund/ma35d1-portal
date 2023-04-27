@@ -62,7 +62,7 @@ else
 fi
 
 DTB_OFFSET=$(${HOST_DIR}/bin/jq -r '.image[] | select(.file=="Image.dtb") | .offset' ${PACK_DTB_JSON})
-echo "DTB offset in SPI NAND --> ${DTB_OFFSET}"
+echo "DTB offset in ${BOOT_DEVICE} --> ${DTB_OFFSET}"
 
 # Construct JSON
 function pack_dtb_json() {
