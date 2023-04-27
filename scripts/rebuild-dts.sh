@@ -18,7 +18,7 @@ HOST_DIR=${CURDIR}/output/host
 BR2_CONFIG=${CURDIR}/.config
 
 DTB_OFFSET=
-PACK_DTB_JSON=
+PACK_DEVICE_JSON=
 BOOT_DEVICE=
 
 #
@@ -52,22 +52,21 @@ make linux-rebuild
 
 if [[ $(echo $UBOOT_DTB_NAME | grep "spinand") != "" ]] ; then
 	BOOT_DEVICE="spinand"
-	PACK_DTB_JSON=${NUWRITER_DIR}/pack-spinand.json
+	PACK_DEVICE_JSON=${NUWRITER_DIR}/pack-spinand.json
 elif [[ $(echo $UBOOT_DTB_NAME | grep "nand") != "" ]] ; then
 	BOOT_DEVICE="nand"
-	PACK_DTB_JSON=${NUWRITER_DIR}/pack-nand.json
+	PACK_DEVICE_JSON=${NUWRITER_DIR}/pack-nand.json
 else
 	BOOT_DEVICE="sdcard"
-	PACK_DTB_JSON=${NUWRITER_DIR}/pack-sdcard.json
+	PACK_DEVICE_JSON=${NUWRITER_DIR}/pack-sdcard.json
 fi
 
-DTB_OFFSET=$(${HOST_DIR}/bin/jq -r '.image[] | select(.file=="Image.dtb") | .offset' ${PACK_DTB_JSON})
+DTB_OFFSET=$(${HOST_DIR}/bin/jq -r '.image[] | select(.file=="Image.dtb") | .offset' ${PACK_DEVICE_JSON})
 echo "DTB offset in ${BOOT_DEVICE} --> ${DTB_OFFSET}"
 
 # Construct JSON
 function pack_dtb_json() {
 	cat << EOF
-
 {
   "image": [
     {
@@ -83,7 +82,9 @@ EOF
 
 cd ${IMAGES_DIR}
 cp ${MACHINE}.dtb Image.dtb
-echo $(pack_dtb_json) > pack_dtb.json
+formal=$(pack_dtb_json)
+echo "${formal}" > pack_dtb.json
+cat pack_dtb.json
 
 ${HOST_DIR}/bin/nuwriter.py -p pack_dtb.json
 cp pack/pack.bin pack-dtb-${MACHINE}-${BOOT_DEVICE}.bin
