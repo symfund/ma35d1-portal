@@ -37,12 +37,14 @@ if ! test -f "${CURDIR}/local.mk" ; then
 	return	
 fi
 
-mkdir -p ${CURDIR}/workspace/configs
+ARCH=$(grep BR2_ARCH= ${BR2_CONFIG} | cut -d'"' -f2)
+if [[ "$ARCH" == "aarch64" ]] ; then
+	ARCH="arm64"
+fi
 
 if test -f "${BR2_CONFIG}" ; then
 	BR2_DEFCONFIG_FILE=$(grep BR2_DEFCONFIG ${BR2_CONFIG} | cut -d'"' -f2)
 	make savedefconfig BR2_DEFCONFIG=${BR2_DEFCONFIG_FILE}
-	cp -f ${BR2_DEFCONFIG_FILE} ${CURDIR}/workspace/configs
 	echo -e "${RED}>>> saved custom buildroot configuration file to ${BR2_DEFCONFIG_FILE}\n${NCOLOR}"
 else
 	echo "Buildroot has not yet been configured, please configure buildroot first!"
@@ -56,7 +58,6 @@ if grep -Eq "^BR2_TARGET_UBOOT_USE_DEFCONFIG=y$" ${BR2_CONFIG}; then
 	sed -i "/^BR2_TARGET_UBOOT_BOARD_DEFCONFIG=.*/c\BR2_TARGET_UBOOT_CUSTOM_CONFIG_FILE=\"${UBOOT_BOARD_DEFCONFIG_FULL_PATH}\"" -i ${BR2_CONFIG}
 
 	make uboot-update-defconfig
-	cp -f $UBOOT_BOARD_DEFCONFIG_FULL_PATH ${CURDIR}/workspace/configs
 	echo -e "${RED}>>> saved custom uboot configuration file to $UBOOT_BOARD_DEFCONFIG_FULL_PATH\n${NCOLOR}"	
 	
 	sed -i -e 's/^# BR2_TARGET_UBOOT_USE_DEFCONFIG.*/BR2_TARGET_UBOOT_USE_DEFCONFIG=y/' -i ${BR2_CONFIG}
@@ -66,13 +67,12 @@ fi
 
 if grep -Eq "^BR2_LINUX_KERNEL_USE_DEFCONFIG=y$" ${BR2_CONFIG}; then
         LINUX_KERNEL_DEFCONFIG_FILE=$(grep BR2_LINUX_KERNEL_DEFCONFIG ${BR2_CONFIG} | cut -d'"' -f2)
-        LINUX_KERNEL_DEFCONFIG_FULL_PATH=$LINUX_OVERRIDE_SRCDIR/arch/arm64/configs/${LINUX_KERNEL_DEFCONFIG_FILE}_defconfig
+        LINUX_KERNEL_DEFCONFIG_FULL_PATH=$LINUX_OVERRIDE_SRCDIR/arch/${ARCH}/configs/${LINUX_KERNEL_DEFCONFIG_FILE}_defconfig
         sed -i -e 's/BR2_LINUX_KERNEL_USE_DEFCONFIG=y/# BR2_LINUX_KERNEL_USE_DEFCONFIG is not set/' -i ${BR2_CONFIG}
         sed -i -e 's/# BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG is not set/BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y/' -i ${BR2_CONFIG}
         sed -i "/^BR2_LINUX_KERNEL_DEFCONFIG=.*/c\BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE=\"${LINUX_KERNEL_DEFCONFIG_FULL_PATH}\"" -i ${BR2_CONFIG}
 
         make linux-update-defconfig
-	cp -f ${LINUX_KERNEL_DEFCONFIG_FULL_PATH} ${CURDIR}/workspace/configs
 	echo -e "${RED}>>> saved custom kernel configuration file to ${LINUX_KERNEL_DEFCONFIG_FULL_PATH}\n${NCOLOR}"
 
         sed -i -e 's/^# BR2_LINUX_KERNEL_USE_DEFCONFIG.*/BR2_LINUX_KERNEL_USE_DEFCONFIG=y/' -i ${BR2_CONFIG}
