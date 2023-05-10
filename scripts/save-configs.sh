@@ -43,7 +43,7 @@ if [[ "$ARCH" == "aarch64" ]] ; then
 fi
 
 if test -f "${BR2_CONFIG}" ; then
-	BR2_DEFCONFIG_FILE=$(grep BR2_DEFCONFIG ${BR2_CONFIG} | cut -d'"' -f2)
+	BR2_DEFCONFIG_FILE=$(grep BR2_DEFCONFIG= ${BR2_CONFIG} | cut -d'"' -f2)
 	make savedefconfig BR2_DEFCONFIG=${BR2_DEFCONFIG_FILE}
 	echo -e "${RED}>>> saved custom buildroot configuration file to ${BR2_DEFCONFIG_FILE}\n${NCOLOR}"
 else
