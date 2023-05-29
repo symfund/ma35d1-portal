@@ -92,3 +92,6 @@ if grep -Eq "^BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y$" ${BR2_CONFIG}; then
 	echo -e "${RED}>>> saved custom kernel configuration file to ${LINUX_KERNEL_CUSTOM_CONFIG_FILE}\n${NCOLOR}"	
 fi
 
+BUSYBOX_CUSTOM_CONFIG_FILE=$(grep BR2_PACKAGE_BUSYBOX_CONFIG= ${BR2_CONFIG} | cut -d '"' -f2)
+make busybox-update-config
+echo -e "${RED}>>> saved custom busybox configuration file to ${BUSYBOX_CUSTOM_CONFIG_FILE}\n${NCOLOR}"
