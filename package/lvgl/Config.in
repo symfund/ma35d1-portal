@@ -1,19 +1,2 @@
 config BR2_PACKAGE_LVGL
 	bool "lvgl"
-
-if BR2_PACKAGE_WESTON
-
-choice
-        prompt "run LVGL with wayland or not?"
-
-config BR2_PACKAGE_LVGL_RUN_WITH_WAYLAND
-        bool "run w/ wayland"
-        select BR2_PACKAGE_LVGL_RUN_WITHOUT_WAYLAND if !BR2_PACKAGE_LVGL_RUN_WITHOUT_WAYLAND
-
-config BR2_PACKAGE_LVGL_RUN_WITHOUT_WAYLAND
-        bool "run w/o wayland"
-        select BR2_PACKAGE_LVGL_RUN_WITH_WAYLAND if !BR2_PACKAGE_LVGL_RUN_WITH_WAYLAND
-
-endchoice
-
-endif
