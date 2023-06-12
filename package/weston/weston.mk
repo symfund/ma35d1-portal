@@ -154,6 +154,7 @@ define WESTON_CONFIG_RESISTIVE_TOUCHSCREEN
 	$(INSTALL) -m 0755 -D $(WESTON_PKGDIR)/save-resistive-touch-calibration.sh \
                   $(TARGET_DIR)/etc/xdg/save-resistive-touch-calibration.sh
 	$(SED) 's/^touchscreen_calibrator=.*/touchscreen_calibrator=true/g'  $(TARGET_DIR)/etc/xdg/weston.ini
+	$(SED) 's/^USING_RESISTIVE_TOUCHSCREEN=.*/USING_RESISTIVE_TOUCHSCREEN=1/g' $(TARGET_DIR)/etc/profile.d/weston.sh
 endef
 WESTON_POST_INSTALL_TARGET_HOOKS += WESTON_CONFIG_RESISTIVE_TOUCHSCREEN
 endif
