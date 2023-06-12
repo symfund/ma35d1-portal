@@ -19,3 +19,8 @@ fi
 display_id=0
 
 export WAYLAND_DISPLAY=wayland-${display_id}
+
+if ! test -f "/etc/udev/rules.d/libinput.rules" ; then
+	sleep 1
+	weston-touch-calibrator /sys/devices/platform/40420000.adc/input/input0/event0
+fi
