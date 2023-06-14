@@ -24,9 +24,20 @@ export WAYLAND_DISPLAY=wayland-${display_id}
 # for resistive touchscreen, USING_RESISTIVE_TOUCHSCREEN=1
 USING_RESISTIVE_TOUCHSCREEN=0
 
+SYS=/sys
+TSDEVICE=
+
+for i in $(ls /dev/input/event*)
+do
+	DEVPATH=$(udevadm info --query=path --name=$i | grep 40420000.adc)
+	if [[ ! -z "$DEVPATH" ]] ; then
+		TSDEVICE=${SYS}${DEVPATH}
+	fi
+done
+
 if [[ "$USING_RESISTIVE_TOUCHSCREEN" -eq 1 ]] ; then
 	if ! test -f "/etc/udev/rules.d/libinput.rules" ; then
 		sleep 1
-		weston-touch-calibrator /sys/devices/platform/40420000.adc/input/input0/event0
+		weston-touch-calibrator ${TSDEVICE}
 	fi
 fi
