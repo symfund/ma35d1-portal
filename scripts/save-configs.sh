@@ -57,7 +57,7 @@ if grep -Eq "^BR2_TARGET_UBOOT_USE_DEFCONFIG=y$" ${BR2_CONFIG}; then
 	sed -i -e 's/# BR2_TARGET_UBOOT_USE_CUSTOM_CONFIG is not set/BR2_TARGET_UBOOT_USE_CUSTOM_CONFIG=y/' -i ${BR2_CONFIG}
 	sed -i "/^BR2_TARGET_UBOOT_BOARD_DEFCONFIG=.*/c\BR2_TARGET_UBOOT_CUSTOM_CONFIG_FILE=\"${UBOOT_BOARD_DEFCONFIG_FULL_PATH}\"" -i ${BR2_CONFIG}
 
-	make uboot-update-defconfig
+	make uboot-update-config
 	echo -e "${RED}>>> saved custom uboot configuration file to $UBOOT_BOARD_DEFCONFIG_FULL_PATH\n${NCOLOR}"	
 	
 	sed -i -e 's/^# BR2_TARGET_UBOOT_USE_DEFCONFIG.*/BR2_TARGET_UBOOT_USE_DEFCONFIG=y/' -i ${BR2_CONFIG}
@@ -67,7 +67,7 @@ fi
 
 if grep -Eq "^BR2_TARGET_UBOOT_USE_CUSTOM_CONFIG=y$" ${BR2_CONFIG}; then
 	UBOOT_CUSTOM_CONFIG_FILE=$(grep BR2_TARGET_UBOOT_CUSTOM_CONFIG_FILE= ${BR2_CONFIG} | cut -d '"' -f2)
-	make uboot-update-defconfig
+	make uboot-update-config
 	echo -e "${RED}>>> saved custom uboot configuration file to ${UBOOT_CUSTOM_CONFIG_FILE}\n${NCOLOR}"
 fi
 
@@ -78,7 +78,7 @@ if grep -Eq "^BR2_LINUX_KERNEL_USE_DEFCONFIG=y$" ${BR2_CONFIG}; then
         sed -i -e 's/# BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG is not set/BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y/' -i ${BR2_CONFIG}
         sed -i "/^BR2_LINUX_KERNEL_DEFCONFIG=.*/c\BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE=\"${LINUX_KERNEL_DEFCONFIG_FULL_PATH}\"" -i ${BR2_CONFIG}
 
-        make linux-update-defconfig
+        make linux-update-config
 	echo -e "${RED}>>> saved custom kernel configuration file to ${LINUX_KERNEL_DEFCONFIG_FULL_PATH}\n${NCOLOR}"
 
         sed -i -e 's/^# BR2_LINUX_KERNEL_USE_DEFCONFIG.*/BR2_LINUX_KERNEL_USE_DEFCONFIG=y/' -i ${BR2_CONFIG}
@@ -88,7 +88,7 @@ fi
 
 if grep -Eq "^BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y$" ${BR2_CONFIG}; then
 	LINUX_KERNEL_CUSTOM_CONFIG_FILE=$(grep BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE= ${BR2_CONFIG} | cut -d '"' -f2)
-	make linux-update-defconfig
+	make linux-update-config
 	echo -e "${RED}>>> saved custom kernel configuration file to ${LINUX_KERNEL_CUSTOM_CONFIG_FILE}\n${NCOLOR}"	
 fi
 
