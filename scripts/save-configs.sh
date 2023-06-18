@@ -34,6 +34,8 @@ source ${CURDIR}/local.mk
 
 if ! test -f "${CURDIR}/local.mk" ; then
 	echo "local.mk is not existed!"
+	echo "If use relative path in local.mk, use $(CONFIG_DIR)."
+	echo "$(CONFIG_DIR) is the root directory of buildroot."
 	return	
 fi
 
@@ -49,6 +51,8 @@ if test -f "${BR2_CONFIG}" ; then
 else
 	echo "Buildroot has not yet been configured, please configure buildroot first!"
 fi
+
+	make uboot-savedefconfig
 
 if grep -Eq "^BR2_TARGET_UBOOT_USE_DEFCONFIG=y$" ${BR2_CONFIG}; then
 	UBOOT_BOARD_DEFCONFIG_FILE=$(grep BR2_TARGET_UBOOT_BOARD_DEFCONFIG ${BR2_CONFIG} | cut -d'"' -f2)
@@ -70,6 +74,8 @@ if grep -Eq "^BR2_TARGET_UBOOT_USE_CUSTOM_CONFIG=y$" ${BR2_CONFIG}; then
 	make uboot-update-defconfig
 	echo -e "${RED}>>> saved custom uboot configuration file to ${UBOOT_CUSTOM_CONFIG_FILE}\n${NCOLOR}"
 fi
+
+	make linux-savedefconfig
 
 if grep -Eq "^BR2_LINUX_KERNEL_USE_DEFCONFIG=y$" ${BR2_CONFIG}; then
         LINUX_KERNEL_DEFCONFIG_FILE=$(grep BR2_LINUX_KERNEL_DEFCONFIG ${BR2_CONFIG} | cut -d'"' -f2)
