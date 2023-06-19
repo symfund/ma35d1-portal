@@ -21,7 +21,7 @@ WESTON_CONF_OPTS = \
 
 # Uses VIDIOC_EXPBUF, only available from 3.8+
 ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_8),y)
-WESTON_CONF_OPTS += -Dsimple-clients=all
+WESTON_CONF_OPTS += -Dsimple-clients=
 else
 WESTON_CONF_OPTS += -Dsimple-clients=
 endif
