@@ -3,7 +3,7 @@
 #
 # Nuvoton (C) 2023 twjiang@nuvoton.com
 #
-# A script auto saves user's custom configs (buildroot/kernel/uboot) 
+# A script auto saves user's custom configs (buildroot/kernel/uboot/busybox) 
 # to the location defined by local.mk.
 #
 # Origin: 
@@ -13,7 +13,7 @@
 # put this script into ${BR2_DIR}/path/to/save-configs.sh
 # change directory to ${BR2_DIR}, that is the root of Buildroot, run this script: 
 #
-# $ source ${BR2_DIR}/path/to/save-configs.sh
+# $ source /path/to/save-configs.sh
 #
 
 # =============================================================================
