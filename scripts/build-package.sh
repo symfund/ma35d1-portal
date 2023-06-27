@@ -41,11 +41,28 @@ if [[ "$1" == "rootfs" ]]; then
 
 	if [[ "$2" == "rebuild" ]]; then
 		make ; return
-		
 	fi
 
 	echo "method '$2' not support"
 	return
+fi
+
+if [[ "$1" == "all" ]]; then
+        if [[ "$2" == "clean" ]] || test -z "$2"; then
+                rm -Rf output/target
+                find output/build -name ".stamp_target_installed" | xargs rm -Rf
+		make uboot-dirclean arm-trusted-firmware-dirclean linux-dirclean optee-os-dirclean
+		make host-gcc-final-rebuild
+                make ; return
+        fi
+
+        if [[ "$2" == "rebuild" ]]; then
+		echo "rebuild all is not safe, do nothing"
+                return
+        fi
+
+        echo "method '$2' not support"
+        return
 fi
 
 echo "-----> The following packages depends on $1 <-----"
