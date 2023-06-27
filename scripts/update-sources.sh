@@ -26,15 +26,36 @@ YELLOW='\033[1;33m'
 CURDIR=$(pwd)
 BR2_CONFIG=${CURDIR}/.config
 
-#alias CONFIG_DIR='echo "."'
-alias CONFIG_DIR='echo "$CURDIR"'
-
 if ! test -f "${CURDIR}/local.mk" ; then
 	echo "local.mk is not existed!"
 	return	
-else
-	source ${CURDIR}/local.mk
 fi
+
+tmpfile="$(mktemp /tmp/makefile.XXXXXXXX.tmp)" || { echo "Failed to create a temp file"; exit 1; }
+make -pn -f Makefile > ${tmpfile} 2>/dev/null
+while read var assign value; do
+        if [[ ${var} = 'UBOOT_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
+                UBOOT_OVERRIDE_SRCDIR="$value"
+        fi
+
+        if [[ ${var} = 'LINUX_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
+                LINUX_OVERRIDE_SRCDIR="$value"
+        fi
+
+        if [[ ${var} = 'CONFIG_DIR' ]] && [[ ${assign} = ':=' ]]; then
+                CONFIG_DIR="$value"
+        fi
+
+        if [[ ${var} = 'TOPDIR' ]] && [[ ${assign} = ':=' ]]; then
+                TOPDIR="$value"
+        fi
+done </${tmpfile}
+rm -Rf ${tmpfile}
+
+echo "UBOOT_OVERRIDE_SRCDIR = ${UBOOT_OVERRIDE_SRCDIR}"
+echo "LINUX_OVERRIDE_SRCDIR = ${LINUX_OVERRIDE_SRCDIR}"
+echo "CONFIG_DIR = ${CONFIG_DIR}"
+echo "TOPDIR = ${TOPDIR}"
 
 # Update buildroot
 if [ ! -d ".git" ] ; then
