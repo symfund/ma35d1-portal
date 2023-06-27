@@ -1,8 +1,11 @@
 #!/bin/sh
 
-#
-# Nuvoton (C) 2023 twjiang@nuvoton.com
-#
+RED_BACK_BLACK_FORE='\033[1;31;43m'
+NCOLOR='\033[0m'
+
+echo -e "${RED_BACK_BLACK_FORE}rebuild-all.sh is deprecated! Use build-package.sh instead.${NCOLOR}"
+
+sleep 3
 
 rm -rf output/target
 find output/ -name ".stamp_target_installed" | xargs rm -rf
