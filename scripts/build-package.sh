@@ -32,10 +32,11 @@ if test -z "$1" ; then
 fi
 
 echo "-----> The following packages depends on $1 <-----"
+dependChains=$(make $1-show-recursive-rdepends)
 make $1-show-recursive-rdepends
 echo
 
-for pkg in $(make $1-show-recursive-rdepends)
+for pkg in ${dependChains[@]}
 do
 	make $pkg-dirclean
 done
