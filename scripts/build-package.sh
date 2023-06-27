@@ -5,14 +5,14 @@
 usage()
 {
 echo -e "
-=============================== USAGE ================================
+=============================== USAGE ======================================
 
 Usage: $ source /path/to/build-package.sh pkg <rebuild | clean | none>
 Usage:
-	pkg     -- the package name
+	pkg     -- the package name. Special packages are 'rootfs' and 'all'
 	rebuild -- rebuild package without clean
 	clean   -- clean then build package
-	none    -- the same as clean, build package with no arguments 
+	none    -- the same as clean 
 
 Usage: ex 1 (none)
 	$ source /path/to/build-package.sh uboot
@@ -29,6 +29,23 @@ if test -z "$1" ; then
 	echo "ERROR: missing package name"
 	usage
 	return 1
+fi
+
+if [[ "$1" == "rootfs" ]]; then
+	if [[ "$2" == "clean" ]] || test -z "$2"; then
+        	rm -Rf output/target
+		find output/build -name ".stamp_target_installed" | xargs rm -Rf
+		make host-gcc-final-rebuild
+		make ; return
+	fi
+
+	if [[ "$2" == "rebuild" ]]; then
+		make ; return
+		
+	fi
+
+	echo "method '$2' not support"
+	return
 fi
 
 echo "-----> The following packages depends on $1 <-----"
