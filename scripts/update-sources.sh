@@ -32,30 +32,48 @@ if ! test -f "${CURDIR}/local.mk" ; then
 fi
 
 tmpfile="$(mktemp /tmp/makefile.XXXXXXXX.tmp)" || { echo "Failed to create a temp file"; exit 1; }
+tmpdefs="$(mktemp /tmp/defsfile.XXXXXXXX.tmp)" || { echo "Failed to create a temp file"; exit 1; }
 make -pn -f Makefile > ${tmpfile} 2>/dev/null
 while read var assign value; do
         if [[ ${var} = 'UBOOT_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
-                UBOOT_OVERRIDE_SRCDIR="$value"
+                echo "UBOOT_OVERRIDE_SRCDIR=$value" >>$tmpdefs
         fi
 
         if [[ ${var} = 'LINUX_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
-                LINUX_OVERRIDE_SRCDIR="$value"
+                echo "LINUX_OVERRIDE_SRCDIR=$value" >>$tmpdefs
+        fi
+
+        if [[ ${var} = 'ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
+                echo "ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR=$value" >>$tmpdefs
+        fi
+
+        if [[ ${var} = 'OPTEE_OS_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
+                echo "OPTEE_OS_OVERRIDE_SRCDIR=$value" >>$tmpdefs
         fi
 
         if [[ ${var} = 'CONFIG_DIR' ]] && [[ ${assign} = ':=' ]]; then
-                CONFIG_DIR="$value"
+                config_dir=$value
         fi
 
         if [[ ${var} = 'TOPDIR' ]] && [[ ${assign} = ':=' ]]; then
-                TOPDIR="$value"
+                top_dir=$value
         fi
 done </${tmpfile}
 rm -Rf ${tmpfile}
 
-echo "UBOOT_OVERRIDE_SRCDIR = ${UBOOT_OVERRIDE_SRCDIR}"
-echo "LINUX_OVERRIDE_SRCDIR = ${LINUX_OVERRIDE_SRCDIR}"
+alias CONFIG_DIR='echo "$config_dir"'
+alias TOPDIR='echo "top_dir"'
+
+source $tmpdefs ; rm -Rf $tmpdefs
+
 echo "CONFIG_DIR = ${CONFIG_DIR}"
 echo "TOPDIR = ${TOPDIR}"
+echo 
+echo "UBOOT_OVERRIDE_SRCDIR = ${UBOOT_OVERRIDE_SRCDIR}"
+echo "LINUX_OVERRIDE_SRCDIR = ${LINUX_OVERRIDE_SRCDIR}"
+echo "ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR = ${ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR}"
+echo "OPTEE_OS_OVERRIDE_SRCDIR = ${OPTEE_OS_OVERRIDE_SRCDIR}"
+echo
 
 # Update buildroot
 if [ ! -d ".git" ] ; then

@@ -36,25 +36,31 @@ if ! test -f "${CURDIR}/local.mk" ; then
 fi
 
 tmpfile="$(mktemp /tmp/makefile.XXXXXXXX.tmp)" || { echo "Failed to create a temp file"; exit 1; }
+tmpdefs="$(mktemp /tmp/defsfile.XXXXXXXX.tmp)" || { echo "Failed to create a temp file"; exit 1; }
 make -pn -f Makefile > ${tmpfile} 2>/dev/null
 while read var assign value; do
-	if [[ ${var} = 'UBOOT_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
-		UBOOT_OVERRIDE_SRCDIR="$value"
-	fi
-
-	if [[ ${var} = 'LINUX_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
-                LINUX_OVERRIDE_SRCDIR="$value"
+        if [[ ${var} = 'UBOOT_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
+                echo "UBOOT_OVERRIDE_SRCDIR=$value" >>$tmpdefs
         fi
 
-	if [[ ${var} = 'CONFIG_DIR' ]] && [[ ${assign} = ':=' ]]; then
-                CONFIG_DIR="$value"
+        if [[ ${var} = 'LINUX_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
+                echo "LINUX_OVERRIDE_SRCDIR=$value" >>$tmpdefs
         fi
 
-	if [[ ${var} = 'TOPDIR' ]] && [[ ${assign} = ':=' ]]; then
-                TOPDIR="$value"
+        if [[ ${var} = 'CONFIG_DIR' ]] && [[ ${assign} = ':=' ]]; then
+                config_dir=$value
+        fi
+
+        if [[ ${var} = 'TOPDIR' ]] && [[ ${assign} = ':=' ]]; then
+                top_dir=$value
         fi
 done </${tmpfile}
 rm -Rf ${tmpfile}
+
+alias CONFIG_DIR='echo "$config_dir"'
+alias TOPDIR='echo "top_dir"'
+
+source $tmpdefs ; rm -Rf $tmpdefs
 
 echo "UBOOT_OVERRIDE_SRCDIR = ${UBOOT_OVERRIDE_SRCDIR}"
 echo "LINUX_OVERRIDE_SRCDIR = ${LINUX_OVERRIDE_SRCDIR}"
