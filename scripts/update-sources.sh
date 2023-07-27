@@ -51,6 +51,10 @@ while read var assign value; do
                 echo "OPTEE_OS_OVERRIDE_SRCDIR=$value" >>$tmpdefs
         fi
 
+        if [[ ${var} = 'PYTHON3_NUWRITER_OVERRIDE_SRCDIR' ]] && [[ ${assign} = '=' ]]; then
+                echo "PYTHON3_NUWRITER_OVERRIDE_SRCDIR=$value" >>$tmpdefs
+        fi
+
         if [[ ${var} = 'CONFIG_DIR' ]] && [[ ${assign} = ':=' ]]; then
                 config_dir=$value
         fi
@@ -73,6 +77,7 @@ echo "UBOOT_OVERRIDE_SRCDIR = ${UBOOT_OVERRIDE_SRCDIR}"
 echo "LINUX_OVERRIDE_SRCDIR = ${LINUX_OVERRIDE_SRCDIR}"
 echo "ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR = ${ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR}"
 echo "OPTEE_OS_OVERRIDE_SRCDIR = ${OPTEE_OS_OVERRIDE_SRCDIR}"
+echo "PYTHON3_NUWRITER_OVERRIDE_SRCDIR = ${PYTHON3_NUWRITER_OVERRIDE_SRCDIR}"
 echo
 
 # Update buildroot
