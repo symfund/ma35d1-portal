@@ -137,4 +137,18 @@ if [[ ! -z "${OPTEE_OS_OVERRIDE_SRCDIR}" ]] ; then
 	fi
 fi
 
+# host-python3-nuwriter
+# patch -i ${BR2_DIR}/package/nuvoton-ma35d1/python3-nuwriter/Add_setup_py.patch -p1
+if [[ ! -z "${PYTHON3_NUWRITER_OVERRIDE_SRCDIR}" ]] ; then
+	cd ${PYTHON3_NUWRITER_OVERRIDE_SRCDIR}
+	if [ ! -d ".git" ] ; then
+		echo -e "${YELLOW}The source code of python3-nuwriter is not controlled by a git repository!${NCOLOR}"
+		cd ${CURDIR}
+		return
+	else
+		until git pull origin master; do echo -e "${YELLOW}failed to update python3-nuwriter repository, retry...${NCOLOR}" ; done
+		echo -e "${RED}update python3-nuwriter repository succeeded.${NCOLOR}"
+	fi
+fi
+
 cd ${CURDIR}
