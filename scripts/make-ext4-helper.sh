@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 params="$(getopt -o d:l:o:s:hv -l directory:,label:,out:,size:,help,verbose --name "$(basename "$0")" -- "$@")"
 
@@ -50,7 +50,9 @@ echo "--directory=$directory, --label=$label, --out=$out, --size=$size"
 
 curdir=$(pwd)
 HOST_DIR=${curdir}/output/host
+echo "curdir=${curdir}, HOST_DIR=${HOST_DIR}"
 
-chown -h -R 0:0 $directory
-${HOST_DIR}/sbin/mkfs.ext4 -d $directory -r 1 -N 0 -m 5 -L $label -O ^64bit $out $size
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+echo "SCRIPT_DIR=${SCRIPT_DIR}"
 
+PATH=${HOST_DIR}/bin:${HOST_DIR}/sbin:$PATH FAKEROOTDONTTRYCHOWN=1 ${HOST_DIR}/bin/fakeroot -- ${SCRIPT_DIR}/make-ext4.sh --directory $directory --label $label --out $out --size $size
