@@ -153,6 +153,13 @@ if [[ ! -z "${PYTHON3_NUWRITER_OVERRIDE_SRCDIR}" ]] ; then
 	else
 		until git pull origin master; do echo -e "${YELLOW}failed to update python3-nuwriter repository, retry...${NCOLOR}" ; done
 		echo -e "${RED}update python3-nuwriter repository succeeded.${NCOLOR}"
+		patch -p1 -N --dry-run --silent < ${CURDIR}/package/nuvoton-ma35d1/python3-nuwriter/Add_setup_py.patch 2>/dev/null
+		if [ $? -eq 0 ];
+			echo "python3-ma35d1 already patched!"
+		then
+			#apply the patch
+			patch -p1 -N < ${CURDIR}/package/nuvoton-ma35d1/python3-nuwriter/Add_setup_py.patch
+		fi
 	fi
 fi
 
