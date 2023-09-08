@@ -11,6 +11,23 @@
 # $ source /path/to/rebuild-dts.sh
 #
 
+echo "rebuild-dts.sh is deprecated, use build-package.sh instead."
+echo ""
+echo "If only the linux device tree file is modified, pack only the device tree binary show below"
+echo "$ source /path/to/build-package.sh dts pack"
+echo ""
+echo "If both the linux source file and device tree file are changed, pack both them show below"
+echo "$ source /path/to/build-package.sh linux pack"
+echo ""
+
+return 
+
+echo "================================================================================================="
+
+
+
+
+
 CURDIR=$(pwd)
 IMAGES_DIR=${CURDIR}/output/images
 NUWRITER_DIR=${CURDIR}/board/nuvoton/ma35d1/nuwriter
