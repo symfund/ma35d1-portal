@@ -168,7 +168,7 @@ if [[ "$1" == "dts" ]] && [[ "$2" == "pack" ]]; then
 	cat pack_dtb.json
 
 	${HOST_DIR}/bin/nuwriter.py -p pack_dtb.json
-	cp pack/pack.bin pack-image-linux-dtb-${MACHINE}-${BOOT_DEVICE}.bin
+	cp pack/pack.bin pack-linux-dtb-${MACHINE}-${BOOT_DEVICE}.bin
 	rm -rf $(date "+%m%d-*") conv pack;
 	rm -rf pack_dtb.json
 
@@ -188,7 +188,7 @@ if [[ "$1" == "linux" ]] && [[ "$2" == "pack" ]]; then
 	cat pack_linux_image_and_dtb.json
 
 	${HOST_DIR}/bin/nuwriter.py -p pack_linux_image_and_dtb.json
-	cp pack/pack.bin pack-image-linux-image-and-dtb-${MACHINE}-${BOOT_DEVICE}.bin
+	cp pack/pack.bin pack-linux-image-and-dtb-${MACHINE}-${BOOT_DEVICE}.bin
 	rm -rf $(date "+%m%d-*") conv pack;
 	rm -rf pack_linux_image_and_dtb.json
 
