@@ -201,14 +201,17 @@ dependChains=$(make $1-show-recursive-rdepends)
 make $1-show-recursive-rdepends
 echo
 
+if [[ "$2" == "clean" ]] || test -z "$2" ; then
+	make $1-dirclean
+fi
+
+if [[ "$2" == "rebuild" ]] ; then
+	make $1-rebuild
+fi
+
 for pkg in ${dependChains[@]}
 do
 	make $pkg-rebuild
 done
 
-if [[ "$2" == "clean" ]] || test -z "$2" ; then
-	make $1-dirclean
-fi
-
-make $1-rebuild ; make
-
+make
