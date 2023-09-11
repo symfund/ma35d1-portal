@@ -203,7 +203,7 @@ echo
 
 for pkg in ${dependChains[@]}
 do
-	make $pkg-dirclean
+	make $pkg-rebuild
 done
 
 if [[ "$2" == "clean" ]] || test -z "$2" ; then
