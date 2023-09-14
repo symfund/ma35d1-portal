@@ -1,90 +1,144 @@
 #!/bin/sh
 
+# make a new directory 'yocto-ma35d1': $ make -p /path/to/yocto-ma35d1
+# Download this script into /path/to/yocto-ma35d1/yocto-setup-build-environment.sh
+# Change directory to 'yocto-ma35d1' and run this script
+# cd /path/to/yocto-ma35d1 ; source yocto-setup-build-environment.sh
+
 # [DISTRO] sources/meta-ma35d1/conf/distro
 # nvt-ma35d1  nvt-ma35d1-directfb
-distro=nvt-ma35d1
+distro=nvt-ma35d1-directfb
 
 # [MACHINE] sources/meta-ma35d1/conf/machine
 # numaker-iot-ma35d16f70  numaker-iot-ma35d16f90  numaker-som-ma35d16a81
-machine=numaker-iot-ma35d16f70
+machine=numaker-som-ma35d16a81
 
 # [IMAGE RECIPE]
 # core-image-minimal nvt-image-qt5
-recipe=core-image-minimal
+recipe=nvt-image-qt5
 
 enable_offline_build=yes
-update_yocto=no
+update_yocto=yes
 
-# libxml2-utils 
-# parse sources/meta-ma35d1/base/ma35d1.xml
-
+# setting up build environment
 if ! test -f ~/.yocto_setup_done ; then
-	sudo apt --purge remove firefox* thunderbird* libreoffice* rhythmbox*
-	sudo apt update
-	sudo apt upgrade
-	sudo apt autoremove
+        sudo apt --purge remove firefox* thunderbird* libreoffice* rhythmbox*
+        sudo apt update
+        #sudo apt upgrade
+        sudo apt autoremove
 
-	# chromium-browser openssh-server
-	sudo apt install --yes curl git git-lfs
+        # chromium-browser openssh-server
+        sudo apt install --yes curl git git-lfs
 
-	# yocto required
-	sudo apt install --yes gawk wget git-core diffstat unzip texinfo gcc-multilib build-essential chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils iputils-ping python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint3 xterm python3-subunit mesa-common-dev
+        sudo snap install xmlstarlet
 
-	# ma35d1 required
-	sudo apt install --yes python autoconf automake cvs subversion flex bison u-boot-tools libssl-dev libncurses5-dev xvfb
-	
-	touch ~/.yocto_setup_done
+        # yocto required
+        sudo apt install --yes gawk wget git-core diffstat unzip texinfo gcc-multilib build-essential chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils iputils-ping python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint3 xterm python3-subunit mesa-common-dev
+
+        # ma35d1 required
+        sudo apt install --yes python autoconf automake cvs subversion flex bison u-boot-tools libssl-dev libncurses5-dev xvfb
+
+        touch ~/.yocto_setup_done
 fi
 
-if test ! -d "./sources" ; then
-	until git clone https://github.com/OpenNuvoton/MA35D1_Yocto-v3.1.3.git sources; do echo "retry..."; done
+# meta yocto layers for MA35D1
+if test ! -d "./sources/.git" ; then
+        until git clone https://github.com/OpenNuvoton/MA35D1_Yocto-v3.1.3.git sources; do echo "retry..."; done
 fi
 
 if [[ ${update_yocto} == "yes" ]] ; then
-	cd ./sources
-	until git pull origin master; do echo "failed to update yocto, retry..."; done
-	cd ..
+        cd ./sources
+        until git pull origin master; do echo "failed to update yocto, retry..."; done
+        cd ..
 fi
 
-# git clone specific commits
-if test ! -d "./sources/poky" ; then
-	until git clone https://git.yoctoproject.org/poky sources/poky; do echo "retry..."; done
-	cd ./sources/poky
-	git checkout 251639560dd29bd2da5e694c1d5958ca26b12d0d
-	cd ../../
-fi
+# output all the attribute names of a element: 'fetch' 'name'
+# xml sel -T -t -m "//remote/@*" -v "name()" -n sources/meta-ma35d1/base/ma35d1.xml
 
-if test ! -d "./sources/meta-virtualization" ; then
-	until git clone https://git.yoctoproject.org/meta-virtualization sources/meta-virtualization; do echo "retry..."; done
-	cd ./sources/meta-virtualization
-	git checkout 89abc62b47f6f20db9d00a8ec9b2c1b6b60ac3f9
-	cd ../../
-fi
+# counting the total numbers of remote
+remote_count=$(xml sel -t -v "count(//remote)" -n sources/meta-ma35d1/base/ma35d1.xml)
+echo "remote count: $remote_count"
+echo ""
 
-if test ! -d "./sources/meta-openembedded" ; then
-	until git clone https://github.com/openembedded/meta-openembedded.git sources/meta-openembedded; do echo "retry..."; done
-	cd ./sources/meta-openembedded
-	git checkout 430ef96fe65f62d8da995f446d5b9b093544f031
-	cd ../../
-fi
+names_with_newlines=$(xml sel -T -t -v "//remote/@name" -n sources/meta-ma35d1/base/ma35d1.xml)
+names="${names_with_newlines//\\n/ }"
 
-# upstream
-if test ! -d "./sources/meta-qt5" ; then
-	until git clone https://github.com/meta-qt5/meta-qt5.git sources/meta-qt5; do echo "retry..."; done
-	cd ./sources/meta-qt5
-	git checkout -b dunfell b4d24d70aca75791902df5cd59a4f4a54aa4a125
-	cd ../../
-fi
+# typeset -A remote for some shells
+# unique mapping: remote[name][fetch] or remote[name]=[fetch]
+declare -gA remote
 
-if test -f "build/conf/local.conf" ; then
-	old_machine=$(grep 'MACHINE ??= ' build/conf/local.conf | cut -d"'" -f2)
+for name in ${names[@]}
+do
+	fetch=$(xml sel -t -v "//remote[@name='$name']/@fetch" -n sources/meta-ma35d1/base/ma35d1.xml)
+	remote[\"$name\"]=$fetch
+	echo "remote[\"$name\"].fetch = "${remote[\"$name\"]}
+done
+echo ""
 
-	old_distro=$(grep 'DISTRO ?= ' build/conf/local.conf | cut -d"'" -f2)
+# <remote fetch="https://github.com/meta-qt5" name="qt"/>
+# <project remote="nuvoton" name="MA35D1_Yocto-v3.1.3" revision="master" path="sources"/>
+# xml sel -t -v '//project[@remote="nuvoton"]/@name' -n sources/meta-ma35d1/base/ma35d1.xml
+# xml sel -t -v '/manifest/project[@remote="yocto"][@name="poky"]/@path' -n sources/meta-ma35d1/base/ma35d1.xml
 
-	if [[ $old_machine != $machine || $old_distro != $distro ]] ; then
-		rm -Rf build/conf
-	fi
-fi
+# remote	fetch				path				name			revision
+# yocto 	https://git.yoctoproject.org	sources/poky			poky			251639560dd29bd2da5e694c1d5958ca26b12d0d
+# yocto		https://git.yoctoproject.org	sources/meta-virtualization	meta-virtualization	89abc62b47f6f20db9d00a8ec9b2c1b6b60ac3f9
+
+# for each remote's name get its path
+for name in ${names[@]}
+do
+	echo "remote is $name"
+	echo "remote's fetch is ${remote[\"$name\"]}"
+	pathes=$(xml sel -t -v "//project[@remote='$name']/@path" -n sources/meta-ma35d1/base/ma35d1.xml)
+	for path in ${pathes[@]}
+	do
+		echo "path is $path"
+		repo_names=$(xml sel -t -v "//project[@remote='$name'][@path='$path']/@name" -n sources/meta-ma35d1/base/ma35d1.xml)
+			for repo_name in ${repo_names[@]}
+			do
+				echo "repoitory name is $repo_name"
+				revisions=$(xml sel -t -v "//project[@remote='$name'][@path='$path'][@name='$repo_name']/@revision" -n sources/meta-ma35d1/base/ma35d1.xml)
+				for revision in ${revisions[@]}
+				do
+					echo "revision is $revision"
+
+					if test ! -d "./$path/.git" ; then
+						echo "the directory ./$path is not existed!"
+						if [[ "$name" == "yocto" ]]; then
+							# repository from yocto
+							until git clone ${remote[\"$name\"]}/$repo_name $path; do echo "retry..."; done
+						else
+							# repository from github has a postfix '.git'
+							until git clone ${remote[\"$name\"]}/$repo_name.git $path; do echo "retry..."; done
+						fi
+
+						cd ./$path
+						git checkout $revision
+						cd -
+					else
+						rev=$(git -C ./$path rev-parse HEAD)
+						echo "current rev is: $rev"
+
+						if [[ ${update_yocto} == "yes" ]]; then
+							cd ./$path
+
+							if [[ ${revision} == "master" ]] || [[ ${revision} != ${rev} ]]; then
+								until git pull origin master; do echo "retry..."; done
+							fi
+							
+							if [[ ${revision} != ${rev} ]]; then
+								git checkout $revision
+							fi
+
+							cd -
+						fi
+					fi
+					
+					echo ""
+				done
+			done
+	done
+done
 
 DISTRO=${distro} MACHINE=${machine} source sources/init-build-env build
 
