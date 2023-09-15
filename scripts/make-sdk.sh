@@ -48,7 +48,42 @@ sed -i -e 's/BR2_TARGET_ROOTFS_TAR=y/# BR2_TARGET_ROOTFS_TAR is not set/' -i ${B
 make olddefconfig
 make sdk
 
+sed -i -e 's/# BR2_INIT_BUSYBOX is not set/BR2_INIT_BUSYBOX=y/' -i ${BR2_CONFIG}
+sed -i -e 's/BR2_INIT_NONE=y/# BR2_INIT_NONE is not set/' -i ${BR2_CONFIG}
+sed -i -e 's/BR2_SYSTEM_BIN_SH_NONE=y/# BR2_SYSTEM_BIN_SH_NONE is not set/' -i ${BR2_CONFIG}
+sed -i -e 's/# BR2_PACKAGE_BUSYBOX is not set/BR2_PACKAGE_BUSYBOX=y/' -i ${BR2_CONFIG}
+sed -i -e 's/# BR2_TARGET_ROOTFS_TAR is not set/BR2_TARGET_ROOTFS_TAR=y/' -i ${BR2_CONFIG}
 
+if test -z "$BR2_SYSTEM_BIN_SH_BUSYBOX"
+then
+        case "$BR2_SYSTEM_BIN_SH" in
+                bash)
+                        sed -i -e '/# BR2_SYSTEM_BIN_SH_NONE is not set/a BR2_SYSTEM_BIN_SH="bash"' -i ${BR2_CONFIG}
+                        sed -i -e 's/# BR2_SYSTEM_BIN_SH_BASH is not set/BR2_SYSTEM_BIN_SH_BASH=y/' -i ${BR2_CONFIG}
+                        ;;
+                dash)
+                        sed -i -e '/# BR2_SYSTEM_BIN_SH_NONE is not set/a BR2_SYSTEM_BIN_SH="dash"' -i ${BR2_CONFIG}
+                        sed -i -e 's/# BR2_SYSTEM_BIN_SH_DASH is not set/BR2_SYSTEM_BIN_SH_DASH=y/' -i ${BR2_CONFIG}
+                        ;;
+                mksh)
+                        sed -i -e '/# BR2_SYSTEM_BIN_SH_NONE is not set/a BR2_SYSTEM_BIN_SH="mksh"' -i ${BR2_CONFIG}
+                        sed -i -e 's/# BR2_SYSTEM_BIN_SH_MKSH is not set/BR2_SYSTEM_BIN_SH_MKSH=y/' -i ${BR2_CONFIG}
+                        ;;
+                zsh)
+                        sed -i -e '/# BR2_SYSTEM_BIN_SH_NONE is not set/a BR2_SYSTEM_BIN_SH="zsh"' -i ${BR2_CONFIG}
+                        sed -i -e 's/# BR2_SYSTEM_BIN_SH_ZSH is not set/BR2_SYSTEM_BIN_SH_ZSH=y/' -i ${BR2_CONFIG}
+                        ;;
+                *)
+                        ;;
+        esac
+fi
+
+make olddefconfig
+
+if ! test -f output/images/aarch64-nuvoton-linux-gnu_sdk-buildroot.tar.gz; then
+	echo "failed to generate SDK tarball!"
+	return
+fi
 
 #################################################################################################################
 #                                                                                                               #
@@ -58,6 +93,7 @@ make sdk
 
 
 mkdir -p output/images/payload
+rm -Rf output/images/payload/*
 mv output/images/aarch64-nuvoton-linux-gnu_sdk-buildroot.tar.gz output/images/payload
 
 # creating a installer script
@@ -115,7 +151,9 @@ _EOF_
 fi
 
 # builder script
+rm -Rf output/images/payload.tar.gz
 rm -Rf output/images/build-sdk.sh
+
 cat > output/images/build-sdk.sh <<_EOF_
 #! /bin/sh
 
