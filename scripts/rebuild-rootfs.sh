@@ -12,6 +12,14 @@
 # $ source /path/to/rebuild-rootfs.sh
 #
 
+echo "rebuild-rootfs.sh is deprecated, use ma35d1-portal/scripts/build-package.sh instead."
+echo "Change directory to the root of Buildroot, run build-package.sh show below"
+echo "$ source ma35d1-portal/scripts/build-package rootfs clean"
+
+return
+
+#######################################################################################################################
+
 rm -rf output/target
 find output/ -name ".stamp_target_installed" | xargs rm -rf
 make host-gcc-final-rebuild
