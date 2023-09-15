@@ -1,23 +1,25 @@
 #!/bin/sh
 
-# make a new directory 'yocto-ma35d1': $ make -p /path/to/yocto-ma35d1
-# Download this script into /path/to/yocto-ma35d1/yocto-setup-build-environment.sh
-# Change directory to 'yocto-ma35d1' and run this script
-# cd /path/to/yocto-ma35d1 ; source yocto-setup-build-environment.sh
+# Ubuntu 20.04 Desktop required
+
+# 1. make a new directory 'yocto-ma35d1': $ make -p /path/to/yocto-ma35d1
+# 2. Download this script into /path/to/yocto-ma35d1/yocto-setup-build-environment.sh
+# 3. Change directory to 'yocto-ma35d1' and run this script
+# 4. $ cd /path/to/yocto-ma35d1 ; source yocto-setup-build-environment.sh
 
 # [DISTRO] sources/meta-ma35d1/conf/distro
 # nvt-ma35d1  nvt-ma35d1-directfb
-distro=nvt-ma35d1-directfb
+distro=nvt-ma35d1
 
 # [MACHINE] sources/meta-ma35d1/conf/machine
 # numaker-iot-ma35d16f70  numaker-iot-ma35d16f90  numaker-som-ma35d16a81
-machine=numaker-som-ma35d16a81
+machine=numaker-iot-ma35d16f90
 
 # [IMAGE RECIPE]
 # core-image-minimal nvt-image-qt5
 recipe=nvt-image-qt5
 
-enable_offline_build=yes
+enable_offline_build=no
 update_yocto=yes
 
 # setting up build environment
@@ -139,6 +141,15 @@ do
 			done
 	done
 done
+
+if test -f "build/conf/local.conf" ; then
+	old_machine=$(grep 'MACHINE ??= ' build/conf/local.conf | cut -d"'" -f2)
+	old_distro=$(grep 'DISTRO ?= ' build/conf/local.conf | cut -d"'" -f2)
+
+	if [[ $old_machine != $machine || $old_distro != $distro ]] ; then
+		rm -Rf build/conf
+	fi
+fi
 
 DISTRO=${distro} MACHINE=${machine} source sources/init-build-env build
 
