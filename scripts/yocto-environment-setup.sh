@@ -216,7 +216,7 @@ fi
 cd build
 
 if [[ ${enable_offline_build} == "no" ]] ; then
-	bitbake -c cleansstate tf-a-ma35d1 optee-os-ma35d1 u-boot-ma35d1 linux-ma35d1 nvt-image-qt5
+	bitbake -c cleansstate tf-a-ma35d1 optee-os-ma35d1 u-boot-ma35d1 linux-ma35d1 ${recipe}
 fi
 
 until bitbake ${recipe}; do echo "retry..."; done
