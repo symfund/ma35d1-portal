@@ -1,0 +1,26 @@
+################################################################################
+#
+# libplist
+#
+################################################################################
+
+LIBPLIST_VERSION = 2.3.0
+LIBPLIST_SOURCE = $(LIBPLIST_VERSION).tar.gz
+LIBPLIST_SITE = https://github.com/libimobiledevice/libplist/archive/refs/tags
+#LIBPLIST_INSTALL_STAGING = YES
+LIBPLIST_LICENSE = LGPL-2.1+
+LIBPLIST_LICENSE_FILES = COPYING
+LIBPLIST_CPE_ID_VENDOR = libimobiledevice
+
+# github tarball does not include configure
+LIBPLIST_AUTORECONF = YES
+
+BR_NO_CHECK_HASH_FOR += $(LIBPLIST_SOURCE)
+
+LIBPLIST_INSTALL_TARGET = YES
+
+# Disable building Python bindings, because it requires host-cython, which
+# is not packaged in Buildroot at all.
+LIBPLIST_CONF_OPTS = --without-cython
+
+$(eval $(autotools-package))
