@@ -143,6 +143,7 @@ fi
 if [[ "$1" == "all" ]]; then
         if [[ "$2" == "clean" ]] || test -z "$2"; then
                 rm -Rf output/target output/images
+		mkdir -p output/target output/images
                 find output/build -name ".stamp_target_installed" | xargs rm -Rf
 		make uboot-dirclean arm-trusted-firmware-dirclean host-uboot-tools-dirclean linux-dirclean optee-os-dirclean host-gcc-final-rebuild
                 make ; return
