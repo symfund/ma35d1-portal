@@ -21,6 +21,15 @@ SHAIRPORT_SYNC_CONF_OPTS = --with-alsa \
 
 SHAIRPORT_SYNC_CONF_ENV += LIBS="$(SHAIRPORT_SYNC_CONF_LIBS)"
 
+ifeq ($(BR2_PACKAGE_SHAIRPOT_SYNC_AIRPLAY2),y)
+SHAIRPORT_SYNC_CONF_OPTS += --with-airplay-2
+endif
+
+ifeq ($(BR2_PACKAGE_SHAIRPORT_SYNC_APPLE_ALAC),y)
+SHAIRPORT_SYNC_DEPENDENCIES += libalac
+SHAIRPORT_SYNC_CONF_OPTS += --with-apple-alac
+endif
+
 # Avahi or tinysvcmdns (shaiport-sync bundles its own version of tinysvcmdns).
 # Avahi support needs libavahi-client, which is built by avahi if avahi-daemon
 # and dbus is selected. Since there is no BR2_PACKAGE_LIBAVAHI_CLIENT config
