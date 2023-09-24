@@ -6,6 +6,7 @@ DAEMON=/usr/bin/$NAME
 case "$1" in
     start)
 	printf "Starting nqptp: "
+	setcap 'cap_net_bind_service=+ep' $DAEMON
 	start-stop-daemon -S -q -b --exec $DAEMON
 	[ $? = 0 ] && echo "OK" || echo "FAIL"
 	;;
