@@ -7,6 +7,10 @@
 # 3. Change directory to 'yocto-ma35d1' and run this script
 # 4. $ cd /path/to/yocto-ma35d1 ; source yocto-setup-build-environment.sh
 
+if test -f $(pwd)/conf/local.conf ; then
+	cd ..
+fi
+
 # [DISTRO] sources/meta-ma35d1/conf/distro
 # nvt-ma35d1  nvt-ma35d1-directfb
 distro=nvt-ma35d1
