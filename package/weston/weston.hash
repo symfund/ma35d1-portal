@@ -1,0 +1,4 @@
+# From https://lists.freedesktop.org/archives/wayland-devel/2023-August/042925.html
+sha256  c712f9cebc66b9924550df5ace5d0359e33b5ff961ea6302de789b3fd4cf70df  weston-10.0.5.tar.xz
+sha512  ac797e777423eaef35f4cc5671da0af531de69959e8ba3d41b17d87df05582b103a91f52867036b46e6bcdf472f4f8c9ff4de001049039feccdfdbe8e2299a95  weston-10.0.5.tar.xz
+sha256   fdb65868f65d0fbdb05c2d3b779e10ce9969fa0c4b9262ba4f260e87086ab860 COPYING

@@ -8,15 +8,18 @@ if test -z "${XDG_RUNTIME_DIR}" ; then
 	fi
 fi
 
+export MESA_LOADER_DRIVER_OVERRIDE=swrast
+export LIBGL_ALWAYS_SOFTWARE=true
+
 weston_pid=$(pidof weston)
 
 if [[ -z "${weston_pid}" ]] ; then
-	weston --tty=1 --config=/etc/xdg/weston.ini &
+	weston --tty=1 --config=/etc/xdg/weston/weston.ini &
 fi
 
 # weston 9.0.0, display_id=0
 # weston 10.0.0, display_id=1
-display_id=0
+display_id=1
 
 export WAYLAND_DISPLAY=wayland-${display_id}
 
