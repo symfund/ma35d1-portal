@@ -13,3 +13,6 @@ ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR=$(CONFIG_DIR)/workspace/tf-a
 UBOOT_OVERRIDE_SRCDIR=$(CONFIG_DIR)/workspace/uboot
 LINUX_OVERRIDE_SRCDIR=$(CONFIG_DIR)/workspace/linux
 ```
+# LVGL with Wayland
+See doc/Wayland Desktop Environment.pdf
+![LVGL with Wayland](/pics/lvgl-with-wayland.png)
