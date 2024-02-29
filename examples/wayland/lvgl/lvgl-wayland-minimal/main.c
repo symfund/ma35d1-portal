@@ -13,7 +13,7 @@ int main(void)
     /* initiate Wayland for LVGL */
     lv_wayland_init();
 
-    disp = lv_wayland_create_window(640, 360, "LVGL with Wayland Demo", NULL);
+    disp = lv_wayland_create_window(640, 360, "LVGL minimal with Wayland", NULL);
 
     while (open) {
         lv_timer_handler();
