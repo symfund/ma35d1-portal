@@ -14,8 +14,11 @@ UBOOT_OVERRIDE_SRCDIR=$(CONFIG_DIR)/workspace/uboot
 LINUX_OVERRIDE_SRCDIR=$(CONFIG_DIR)/workspace/linux
 ```
 # Wayland Desktop Environment
+See doc/Wayland Desktop Environment.pdf
 ![Content of Wayland Desktop Environment](/pics/wayland-desktop-environment-content.png)
 
 # LVGL with Wayland
-See doc/Wayland Desktop Environment.pdf
 ![LVGL with Wayland](/pics/lvgl-with-wayland.png)
+
+# LVGL examples with Wayland
+![LVGL with Wayland](/pics/lvgl-examples-with-wayland.png)
