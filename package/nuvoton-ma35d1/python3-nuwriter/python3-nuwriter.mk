@@ -16,14 +16,13 @@ HOST_PYTHON3_NUWRITER_DEPENDENCIES = \
 	host-python3-pip
 
 define HOST_PYTHON3_NUWRITER_BUILD_CMDS
-	(cd $(CONFIG_DIR)/package/nuvoton-ma35d1/python3-nuwriter; \
-		if [ ! -f "$(BR2_DL_DIR)/python3-nuwriter/requirements.txt" ]; then \
-			$(HOST_DIR)/bin/pip3 download --dest $(BR2_DL_DIR)/python3-nuwriter --requirement requirements.dep; \
-			$(HOST_DIR)/bin/pip3 install wheel crcmod pyusb usb crypto ecdsa tqdm pycryptodome; \
-			cp requirements.dep $(BR2_DL_DIR)/python3-nuwriter/requirements.txt; \
-		else \
-			$(HOST_DIR)/bin/pip3 install --no-index --find-links=$(BR2_DL_DIR)/python3-nuwriter -r $(BR2_DL_DIR)/python3-nuwriter/requirements.txt; \
-		fi \
+	(cd $(HOST_PYTHON3_NUWRITER_PKGDIR); \
+		if [ ! -f ".python3_nuwriter.done" ]; then \
+			mkdir -p files; \
+			$(HOST_DIR)/bin/pip3 download --dest "files" --requirement requirement.txt; \
+			touch .python3_nuwriter.done; \
+		fi; \
+		$(HOST_DIR)/bin/pip3 install --no-index --find-links="files" -r requirement.txt \
 	)
 endef
 
