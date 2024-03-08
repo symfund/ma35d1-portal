@@ -22,3 +22,6 @@ See doc/Wayland Desktop Environment.pdf
 
 # LVGL examples with Wayland
 ![LVGL with Wayland](/pics/lvgl-examples-with-wayland.png)
+
+# AirPlay on Wayland
+![AirPlay on Wayland](/pics/AirPlay-on-Wayland.png)
