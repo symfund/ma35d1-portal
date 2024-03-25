@@ -1,4 +1,4 @@
-#################################################################################################################################################################
+##################################################################################################################################################################
 #                                                                                                                                                                #
 # Nuvoton Corporation 2024 (twjiang@nuvoton.com)                                                                                                                 #
 #                                                                                                                                                                #
@@ -49,26 +49,28 @@ ifndef BR2_BIN_SH
 BR2_BIN_SH=$(if $(BR2_SYSTEM_BIN_SH_BUSYBOX),sh,$(call qstrip,$(BR2_SYSTEM_BIN_SH)))
 endif
 
+export BR2_SDK_PREFIX_REL=$(BR2_SDK_PREFIX)
+
 define _script
 
 mkdir -p output/images/payload
 rm -Rf output/images/payload/*
-cp -Rf output/images/$(cat .sdk-prefix).tar.gz output/images/payload
+cp -Rf output/images/${BR2_SDK_PREFIX_REL}.tar.gz output/images/payload
 
 cat > output/images/payload/installer.sh <<EOF
 #!/bin/sh
 
 echo ""
 echo "============================================================================================="
-echo "Installing MA35D1 SDK into /opt/$(cat .sdk-prefix)..."
+echo "Installing MA35D1 SDK into /opt/${BR2_SDK_PREFIX_REL}..."
 echo "============================================================================================="
-sudo tar xzvf ./$(cat .sdk-prefix).tar.gz -C /opt
-/opt/$(cat .sdk-prefix)/relocate-sdk.sh
+sudo tar xzvf ./${BR2_SDK_PREFIX_REL}.tar.gz -C /opt
+/opt/${BR2_SDK_PREFIX_REL}/relocate-sdk.sh
 echo ""
 echo "============================================================================================="
 echo "Before compiling source files, set up the build environment as shown below"
 echo ""
-echo "$ source /opt/$(cat .sdk-prefix)/environment-setup"
+echo "$ source /opt/${BR2_SDK_PREFIX_REL}/environment-setup"
 echo ""
 echo "============================================================================================="
 echo ""
@@ -112,12 +114,12 @@ if [ ! -f ../payload.tar.gz ] ; then
         tar czvf ../payload.tar.gz ./*
         cd ..
 
-        cat decompress.sh payload.tar.gz > $(cat .sdk-prefix)_installer
-        chmod +x $(cat .sdk-prefix)_installer
+        cat decompress.sh payload.tar.gz > ${BR2_SDK_PREFIX_REL}_installer
+        chmod +x ${BR2_SDK_PREFIX_REL}_installer
 
         echo ""
         echo "=============================================================================================="
-        echo "Generated the SDK installer in output/images/$(cat .sdk-prefix)_installer"
+        echo "Generated the SDK installer in output/images/${BR2_SDK_PREFIX_REL}_installer"
         echo "=============================================================================================="
         echo ""
 
@@ -304,12 +306,11 @@ all-rebuild:
 	@make all-clean
 	@mkdir -p output/target output/images
 	@make host-gcc-final-rebuild
-	@make 
+	@make
 
 sdk-tool:
 	@echo ">>>>>>>>>> Making SDK <<<<<<<<<<"
 	@echo "$(BR2_BIN_SH)" > .shell
-	@echo "$(BR2_SDK_PREFIX)" > .sdk-prefix
 	@sed -i 's/BR2_INIT_BUSYBOX=y/# BR2_INIT_BUSYBOX is not set/g' $(BR2_CONFIG) 
 	@sed -i 's/# BR2_INIT_NONE is not set/BR2_INIT_NONE=y/g' $(BR2_CONFIG)
 	@sed -i 's/# BR2_SYSTEM_BIN_SH_NONE is not set/BR2_SYSTEM_BIN_SH_NONE=y/g' $(BR2_CONFIG) 
@@ -359,7 +360,7 @@ sdk-tool:
 
 	@sed -i 's/# BR2_PACKAGE_BUSYBOX is not set/BR2_PACKAGE_BUSYBOX=y/g' $(BR2_CONFIG) 
 	@sed -i 's/# BR2_TARGET_ROOTFS_TAR is not set/BR2_TARGET_ROOTFS_TAR=y/g' $(BR2_CONFIG) 
-	@rm -Rf .shell .sdk-prefix
+	@rm -Rf .shell
 	@make olddefconfig
 	@make
 
