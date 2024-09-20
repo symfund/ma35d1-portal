@@ -1,14 +1,17 @@
-##################################################################################################################################################################
-#                                                                                                                                                                #
-# Nuvoton Corporation 2024 (twjiang@nuvoton.com)                                                                                                                 #
-#                                                                                                                                                                #
-##################################################################################################################################################################
+######################################################################################################################################
+#                                                                                                                                    #
+# Nuvoton Corporation 2024 (twjiang@nuvoton.com)                                                                                     #
+#                                                                                                                                    #
+######################################################################################################################################
 
 # Overriding packages source directory
 ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_ARM_TRUSTED_FIRMWARE_SRCDIR))
 UBOOT_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_UBOOT_SRCDIR))
 OPTEE_OS_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_OPTEE_OS_SRCDIR))
 LINUX_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_LINUX_SRCDIR))
+
+# Buildroot 2016 must override the below 'LINUX_HEADERS_OVERRIDE_SRCDIR', uncomment it.
+#LINUX_HEADERS_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_LINUX_SRCDIR))
 
 ifeq ($(BR2_LINUX_KERNEL_USE_DEFCONFIG),y)
 ifndef BR2_LINUX_KERNEL_DEFCONFIG_FILE
