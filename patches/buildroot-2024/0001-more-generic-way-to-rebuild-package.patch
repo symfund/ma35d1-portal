@@ -1,0 +1,28 @@
+From 8642d47d2aa66c6863f92b50faf1129630349b33 Mon Sep 17 00:00:00 2001
+From: Arthur Jiang <twjiang@nuvoton.com>
+Date: Fri, 20 Sep 2024 03:00:08 -0600
+Subject: [PATCH] package/pkg-generic.mk: a more generic way to rebuild
+ packages
+
+---
+ package/pkg-generic.mk | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/package/pkg-generic.mk b/package/pkg-generic.mk
+index 577a148c..b46688e1 100644
+--- a/package/pkg-generic.mk
++++ b/package/pkg-generic.mk
+@@ -1063,6 +1063,10 @@ $(1)-clean-for-rebuild: $(1)-clean-for-reinstall
+ 			rm -f $$($(2)_TARGET_BUILD)
+ 
+ $(1)-rebuild:		$(1)-clean-for-rebuild .WAIT $(1)
++			@if [[ ! -z "$$($(2)_RDEPENDENCIES)" ]]; then \
++				$(call MESSAGE,"these packages "'"$$($(2)_RDEPENDENCIES)"'" depend on $(1)"); \
++				make $$(foreach p,$$($(2)_RDEPENDENCIES),$$(p)-rebuild); \
++			fi
+ 
+ $(1)-clean-for-reconfigure: $(1)-clean-for-rebuild
+ 			rm -f $$($(2)_TARGET_CONFIGURE)
+-- 
+2.43.0
+
