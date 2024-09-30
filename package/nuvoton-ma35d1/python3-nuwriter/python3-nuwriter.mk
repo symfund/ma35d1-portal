@@ -16,13 +16,22 @@ HOST_PYTHON3_NUWRITER_DEPENDENCIES = \
 	host-python3-pip
 
 define HOST_PYTHON3_NUWRITER_BUILD_CMDS
-	(cd $(HOST_PYTHON3_NUWRITER_PKGDIR); \
+	(cd $(@D); \
+                if ! patch -R -p1 -s -f --dry-run <$$(ls $(CONFIG_DIR)/$(HOST_PYTHON3_NUWRITER_PKGDIR)/*.patch -1t | head -1); then \
+                        for f in $(CONFIG_DIR)/$(HOST_PYTHON3_NUWRITER_PKGDIR)/*.patch; do \
+				$(call MESSAGE,"is applying the patch $$f"); \
+                                patch -p1 <$$f; \
+                        done; \
+                else \
+			$(call MESSAGE,"host-python3-nuwriter is patched already!"); \
+                fi; \
+		cd $(HOST_PYTHON3_NUWRITER_DL_DIR); \
 		if [ ! -f ".python3_nuwriter.done" ]; then \
 			mkdir -p files; \
-			$(HOST_DIR)/bin/pip3 download --dest "files" --requirement requirement.txt; \
+			$(HOST_DIR)/bin/pip3 download --dest "files" --requirement $(CONFIG_DIR)/$(HOST_PYTHON3_NUWRITER_PKGDIR)/requirement.txt; \
 			touch .python3_nuwriter.done; \
 		fi; \
-		$(HOST_DIR)/bin/pip3 install --no-index --find-links="files" -r requirement.txt \
+		$(HOST_DIR)/bin/pip3 install --no-index --find-links="files" -r $(CONFIG_DIR)/$(HOST_PYTHON3_NUWRITER_PKGDIR)/requirement.txt \
 	)
 endef
 
