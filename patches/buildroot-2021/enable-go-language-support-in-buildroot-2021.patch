@@ -1,0 +1,69 @@
+From 9ffb4136c9a9ed80e48c81a1cf1abcb3b71272e4 Mon Sep 17 00:00:00 2001
+From: Arthur Jiang <twjiang@nuvoton.com>
+Date: Thu, 19 Sep 2024 19:08:10 -0600
+Subject: [PATCH] package/gcc: add Go language support
+
+---
+ package/gcc/Config.in.host         | 7 +++++++
+ package/gcc/gcc-final/gcc-final.mk | 5 +++++
+ package/gcc/gcc.mk                 | 3 ++-
+ 3 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/package/gcc/Config.in.host b/package/gcc/Config.in.host
+index a68bdc1b84..f5db1747e5 100644
+--- a/package/gcc/Config.in.host
++++ b/package/gcc/Config.in.host
+@@ -94,6 +94,13 @@ config BR2_TOOLCHAIN_BUILDROOT_CXX
+ 	  C++ language and you want C++ libraries to be installed on
+ 	  your target system.
+ 
++config BR2_TOOLCHAIN_BUILDROOT_GOLANG
++        bool "Enable GO support"
++        help 
++          Enable this option if you want your toolchain to support the
++          GO language and you want GO libraries to be installed on
++          your target system.
++
+ comment "Fortran support needs a toolchain w/ wchar"
+ 	depends on BR2_TOOLCHAIN_HAS_LIBQUADMATH
+ 	depends on !BR2_USE_WCHAR # libquadmath
+diff --git a/package/gcc/gcc-final/gcc-final.mk b/package/gcc/gcc-final/gcc-final.mk
+index 24d034b720..706a5b89c8 100644
+--- a/package/gcc/gcc-final/gcc-final.mk
++++ b/package/gcc/gcc-final/gcc-final.mk
+@@ -55,6 +55,7 @@ endef
+ # Languages supported by the cross-compiler
+ GCC_FINAL_CROSS_LANGUAGES-y = c
+ GCC_FINAL_CROSS_LANGUAGES-$(BR2_INSTALL_LIBSTDCPP) += c++
++GCC_FINAL_CROSS_LANGUAGES-$(BR2_TOOLCHAIN_BUILDROOT_GOLANG) += go
+ GCC_FINAL_CROSS_LANGUAGES-$(BR2_TOOLCHAIN_BUILDROOT_DLANG) += d
+ GCC_FINAL_CROSS_LANGUAGES-$(BR2_TOOLCHAIN_BUILDROOT_FORTRAN) += fortran
+ GCC_FINAL_CROSS_LANGUAGES = $(subst $(space),$(comma),$(GCC_FINAL_CROSS_LANGUAGES-y))
+@@ -175,6 +176,10 @@ ifeq ($(BR2_TOOLCHAIN_BUILDROOT_DLANG),y)
+ HOST_GCC_FINAL_USR_LIBS += libgdruntime libgphobos
+ endif
+ 
++ifeq ($(BR2_TOOLCHAIN_BUILDROOT_GOLANG),y)
++HOST_GCC_FINAL_USR_LIBS += libgo
++endif
++
+ ifeq ($(BR2_TOOLCHAIN_BUILDROOT_FORTRAN),y)
+ HOST_GCC_FINAL_USR_LIBS += libgfortran
+ # fortran needs quadmath on x86 and x86_64
+diff --git a/package/gcc/gcc.mk b/package/gcc/gcc.mk
+index 5e419f7ede..2d7ad5eaca 100644
+--- a/package/gcc/gcc.mk
++++ b/package/gcc/gcc.mk
+@@ -48,7 +48,8 @@ define HOST_GCC_APPLY_PATCHES
+ endef
+ 
+ HOST_GCC_EXCLUDES = \
+-	libjava/* libgo/*
++	libjava/* \
++	$(if $(BR2_TOOLCHAIN_BUILDROOT_GOLANG),,libgo/*)
+ 
+ #
+ # Create 'build' directory and configure symlink
+-- 
+2.43.0
+
