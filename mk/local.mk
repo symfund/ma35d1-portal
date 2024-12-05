@@ -293,8 +293,7 @@ rootfs-clean:
 rootfs-rebuild:
 	@echo ">>>>>>>>>> Rebuilding rootfs <<<<<<<<<<"
 	@make rootfs-clean
-	@make host-gcc-final-rebuild
-	@make
+	@if (( $(BR2_VERSION_EPOCH) < 1709640000 )) ; then make host-gcc-final-rebuild ; fi
 	@echo "rootfs rebuilt done"
 
 all-clean:
