@@ -1,0 +1,204 @@
+From 6a8d4ba20af4edf36c67323cd65462197e864ae4 Mon Sep 17 00:00:00 2001
+From: Arthur Jiang <twjiang@nuvoton.com>
+Date: Wed, 4 Dec 2024 14:09:05 +0800
+Subject: [PATCH 1/3] package/cmake: bump to version 3.28.3
+
+---
+ .../cmake/0001-rename-cmake-rootfile.patch    |  6 +-
+ package/cmake/Config.in                       |  8 +--
+ package/cmake/Config.in.host                  | 57 +++++++++++++++++++
+ package/cmake/cmake.hash                      |  6 +-
+ package/cmake/cmake.mk                        | 17 ++++--
+ 5 files changed, 81 insertions(+), 13 deletions(-)
+
+diff --git a/package/cmake/0001-rename-cmake-rootfile.patch b/package/cmake/0001-rename-cmake-rootfile.patch
+index a8cd3ee820..7e6e0a8cf7 100644
+--- a/package/cmake/0001-rename-cmake-rootfile.patch
++++ b/package/cmake/0001-rename-cmake-rootfile.patch
+@@ -12,10 +12,12 @@ This buildroot-specific patch makes sure ctest looks also for
+ 
+ [Vincent: tweak patch for 3.6.3]
+ [James: tweak patch for 3.15.4]
++[Bernd: tweak patch for 3.27.0]
+ 
+ Signed-off-by: Davide Viti <zinosat@tiscali.it>
+ Signed-off-by: Vicente Olivert Riera <Vincent.Riera@imgtec.com>
+ Signed-off-by: James Hilliard <james.hilliard1@gmail.com>
++Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+ ---
+  Source/cmake.cxx | 7 ++++++-
+  1 file changed, 6 insertions(+), 1 deletion(-)
+@@ -24,8 +26,8 @@ diff --git a/Source/cmake.cxx b/Source/cmake.cxx
+ index 3772f09985..c317e4af38 100644
+ --- a/Source/cmake.cxx
+ +++ b/Source/cmake.cxx
+-@@ -1009,7 +1009,12 @@ int cmake::AddCMakePaths()
+-     "Path to cpack program executable.", cmStateEnums::INTERNAL);
++@@ -1891,7 +1891,12 @@ int cmake::AddCMakePaths()
++                       cmStateEnums::INTERNAL);
+  #endif
+    if (!cmSystemTools::FileExists(
+ -        (cmSystemTools::GetCMakeRoot() + "/Modules/CMake.cmake"))) {
+diff --git a/package/cmake/Config.in b/package/cmake/Config.in
+index 3c47fdcb49..00692fe78a 100644
+--- a/package/cmake/Config.in
++++ b/package/cmake/Config.in
+@@ -6,7 +6,7 @@ config BR2_PACKAGE_CMAKE_ARCH_SUPPORTS
+ 		BR2_mipsel    || BR2_mips64el    || BR2_powerpc  || \
+ 		BR2_powerpc64 || BR2_powerpc64le || BR2_sparc    || \
+ 		BR2_i386      || BR2_x86_64      || BR2_xtensa   || \
+-		BR2_s390x
++		BR2_s390x     || BR2_riscv
+ 
+ config BR2_PACKAGE_CMAKE
+ 	bool
+@@ -14,7 +14,7 @@ config BR2_PACKAGE_CMAKE
+ config BR2_PACKAGE_CMAKE_CTEST
+ 	bool "ctest"
+ 	depends on BR2_PACKAGE_CMAKE_ARCH_SUPPORTS
+-	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_7 # from jsoncpp
++	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 # jsoncpp, libuv
+ 	depends on BR2_USE_WCHAR # libarchive
+ 	depends on BR2_INSTALL_LIBSTDCPP
+ 	depends on !BR2_STATIC_LIBS
+@@ -40,10 +40,10 @@ config BR2_PACKAGE_CMAKE_CTEST
+ 
+ 	  http://www.cmake.org/
+ 
+-comment "ctest needs a toolchain w/ C++, wchar, dynamic library, gcc >= 4.7, NPTL"
++comment "ctest needs a toolchain w/ C++, wchar, dynamic library, gcc >= 4.9, NPTL"
+ 	depends on BR2_PACKAGE_CMAKE_ARCH_SUPPORTS
+ 	depends on BR2_USE_MMU
+ 	depends on BR2_TOOLCHAIN_HAS_SYNC_4
+ 	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_USE_WCHAR || \
+-		BR2_STATIC_LIBS || !BR2_TOOLCHAIN_GCC_AT_LEAST_4_7 || \
++		BR2_STATIC_LIBS || !BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 || \
+ 		!BR2_TOOLCHAIN_HAS_THREADS_NPTL
+diff --git a/package/cmake/Config.in.host b/package/cmake/Config.in.host
+index b2e210ee2c..c38bb9daaa 100644
+--- a/package/cmake/Config.in.host
++++ b/package/cmake/Config.in.host
+@@ -9,3 +9,60 @@ config BR2_PACKAGE_HOST_CMAKE
+ 	  the compiler environment of your choice.
+ 
+ 	  http://www.cmake.org/
++
++# The minimum system cmake version we expect if 3.18 as provided by
++# Debian bullseye, that we use in our reference build docker image.
++config BR2_HOST_CMAKE_AT_LEAST_3_19
++	bool
++
++config BR2_HOST_CMAKE_AT_LEAST_3_20
++	bool
++	select BR2_HOST_CMAKE_AT_LEAST_3_19
++
++config BR2_HOST_CMAKE_AT_LEAST_3_21
++	bool
++	select BR2_HOST_CMAKE_AT_LEAST_3_20
++
++config BR2_HOST_CMAKE_AT_LEAST_3_22
++	bool
++	select BR2_HOST_CMAKE_AT_LEAST_3_21
++
++config BR2_HOST_CMAKE_AT_LEAST_3_23
++	bool
++	select BR2_HOST_CMAKE_AT_LEAST_3_22
++
++config BR2_HOST_CMAKE_AT_LEAST_3_24
++	bool
++	select BR2_HOST_CMAKE_AT_LEAST_3_23
++
++config BR2_HOST_CMAKE_AT_LEAST_3_25
++	bool
++	select BR2_HOST_CMAKE_AT_LEAST_3_24
++
++config BR2_HOST_CMAKE_AT_LEAST_3_26
++	bool
++	select BR2_HOST_CMAKE_AT_LEAST_3_25
++
++config BR2_HOST_CMAKE_AT_LEAST_3_27
++	bool
++	select BR2_HOST_CMAKE_AT_LEAST_3_26
++
++config BR2_HOST_CMAKE_AT_LEAST_3_28
++	bool
++	select BR2_HOST_CMAKE_AT_LEAST_3_27
++
++# This order guarantees that the highest version is set, as kconfig
++# stops affecting a value on the first matching default.
++config BR2_HOST_CMAKE_AT_LEAST
++	string
++	default "3.28"	if BR2_HOST_CMAKE_AT_LEAST_3_28
++	default "3.27"	if BR2_HOST_CMAKE_AT_LEAST_3_27
++	default "3.26"	if BR2_HOST_CMAKE_AT_LEAST_3_26
++	default "3.25"	if BR2_HOST_CMAKE_AT_LEAST_3_25
++	default "3.24"	if BR2_HOST_CMAKE_AT_LEAST_3_24
++	default "3.23"	if BR2_HOST_CMAKE_AT_LEAST_3_23
++	default "3.22"	if BR2_HOST_CMAKE_AT_LEAST_3_22
++	default "3.21"	if BR2_HOST_CMAKE_AT_LEAST_3_21
++	default "3.20"	if BR2_HOST_CMAKE_AT_LEAST_3_20
++	default "3.19"	if BR2_HOST_CMAKE_AT_LEAST_3_19
++	default "3.18"
+diff --git a/package/cmake/cmake.hash b/package/cmake/cmake.hash
+index 983c292983..74b4a0a3a8 100644
+--- a/package/cmake/cmake.hash
++++ b/package/cmake/cmake.hash
+@@ -1,5 +1,5 @@
+-# From https://cmake.org/files/v3.15/cmake-3.15.5-SHA-256.txt
+-sha256 fbdd7cef15c0ced06bb13024bfda0ecc0dedbcaaaa6b8a5d368c75255243beb4  cmake-3.15.5.tar.gz
++# From https://cmake.org/files/v3.28/cmake-3.28.3-SHA-256.txt
++sha256  72b7570e5c8593de6ac4ab433b73eab18c5fb328880460c86ce32608141ad5c1  cmake-3.28.3.tar.gz
+ 
+ # Locally calculated
+-sha256 dc628fb936a5d229296d42083f9a8218aa32204c016919e784404c9ec58776e9  Copyright.txt
++sha256  4a01ccf2dc580ba570d02bc015bbe0ec92f1f318717aae9540ba841ba7946756  Copyright.txt
+diff --git a/package/cmake/cmake.mk b/package/cmake/cmake.mk
+index 90fe868fa5..49d1f9fea5 100644
+--- a/package/cmake/cmake.mk
++++ b/package/cmake/cmake.mk
+@@ -4,12 +4,13 @@
+ #
+ ################################################################################
+ 
+-CMAKE_VERSION_MAJOR = 3.15
+-CMAKE_VERSION = $(CMAKE_VERSION_MAJOR).5
++# When updating the version, please also update BR2_HOST_CMAKE_AT_LEAST_X_Y
++CMAKE_VERSION_MAJOR = 3.28
++CMAKE_VERSION = $(CMAKE_VERSION_MAJOR).3
+ CMAKE_SITE = https://cmake.org/files/v$(CMAKE_VERSION_MAJOR)
+ CMAKE_LICENSE = BSD-3-Clause
+ CMAKE_LICENSE_FILES = Copyright.txt
+-CMAKE_CPE_ID_VENDOR = cmake_project
++CMAKE_CPE_ID_VALID = YES
+ # Tool download MITM attack warning if using npm package to install cmake
+ CMAKE_IGNORE_CVES = CVE-2016-10642
+ 
+@@ -32,6 +33,7 @@ CMAKE_CONF_OPTS = \
+ 	-DKWSYS_CHAR_IS_SIGNED=TRUE \
+ 	-DCMAKE_USE_SYSTEM_LIBRARIES=1 \
+ 	-DCTEST_USE_XMLRPC=OFF \
++	-DCMake_ENABLE_DEBUGGER=0 \
+ 	-DBUILD_CursesDialog=OFF
+ 
+ # Get rid of -I* options from $(HOST_CPPFLAGS) to prevent that a
+@@ -40,9 +42,16 @@ CMAKE_CONF_OPTS = \
+ HOST_CMAKE_CFLAGS = $(shell echo $(HOST_CFLAGS) | sed -r "s%$(HOST_CPPFLAGS)%%")
+ HOST_CMAKE_CXXFLAGS = $(shell echo $(HOST_CXXFLAGS) | sed -r "s%$(HOST_CPPFLAGS)%%")
+ 
++# We may be a ccache dependency, so we can't use ccache
++HOST_CMAKE_CONFIGURE_OPTS = \
++	$(HOST_CONFIGURE_OPTS) \
++	CC="$(HOSTCC_NOCCACHE)" \
++	GCC="$(HOSTCC_NOCCACHE)" \
++	CXX="$(HOSTCXX_NOCCACHE)"
++
+ define HOST_CMAKE_CONFIGURE_CMDS
+ 	(cd $(@D); \
+-		$(HOST_CONFIGURE_OPTS) \
++		$(HOST_CMAKE_CONFIGURE_OPTS) \
+ 		CFLAGS="$(HOST_CMAKE_CFLAGS)" \
+ 		./bootstrap --prefix=$(HOST_DIR) \
+ 			--parallel=$(PARALLEL_JOBS) -- \
+-- 
+2.43.0
+

@@ -1,0 +1,1390 @@
+From 2169e0218d0c6eeb54ce97d6dad8f8e9b7465d56 Mon Sep 17 00:00:00 2001
+From: Arthur Jiang <twjiang@nuvoton.com>
+Date: Wed, 4 Dec 2024 16:59:18 +0800
+Subject: [PATCH 2/3] package/weston: bump to version 10.0.5
+
+---
+ package/mesa3d-demos/mesa3d-demos.mk          |   2 +-
+ package/mesa3d-headers/mesa3d-headers.mk      |   4 +-
+ ...tion-to-disable-optional-neon-suppor.patch |   6 +-
+ ...-fix-build-on-32-bit-architectures-u.patch |  43 ------
+ package/mesa3d/Config.in                      |  52 +------
+ package/mesa3d/mesa3d.hash                    |   8 +-
+ package/mesa3d/mesa3d.mk                      |  19 +--
+ .../wayland-protocols/wayland-protocols.hash  |   8 +-
+ .../wayland-protocols/wayland-protocols.mk    |   6 +-
+ ...01-build-add-option-to-disable-tests.patch | 104 --------------
+ .../wayland/0001-build-set-c_std-c99.patch    |  34 +++++
+ ...on-t-rely-on-implicit-GNU-extensions.patch | 108 +++++++++++++++
+ .../0002-meson-do-not-check-for-c.patch       |  29 ----
+ package/wayland/wayland.hash                  |   8 +-
+ package/wayland/wayland.mk                    |   2 +-
+ package/weston/0001-fbdev-backend.patch       |  33 +++++
+ ...ntl.h-for-open-O_RDWR-O_CLOEXEC-and-.patch |  48 -------
+ ...libweston-backend-drm-might-need-EGL.patch |  47 -------
+ package/weston/Config.in                      | 130 +++++++++++++++---
+ .../save-resistive-touch-calibration.sh       |   3 +
+ package/weston/weston.hash                    |  10 +-
+ package/weston/weston.ini                     |  20 +++
+ package/weston/weston.mk                      |  94 +++++++++++--
+ package/weston/weston.sh                      |  46 +++++++
+ 24 files changed, 474 insertions(+), 390 deletions(-)
+ delete mode 100644 package/mesa3d/0005-src-util-futex.h-fix-build-on-32-bit-architectures-u.patch
+ delete mode 100644 package/wayland/0001-build-add-option-to-disable-tests.patch
+ create mode 100644 package/wayland/0001-build-set-c_std-c99.patch
+ create mode 100644 package/wayland/0002-build-don-t-rely-on-implicit-GNU-extensions.patch
+ delete mode 100644 package/wayland/0002-meson-do-not-check-for-c.patch
+ create mode 100644 package/weston/0001-fbdev-backend.patch
+ delete mode 100644 package/weston/0001-tests-include-fcntl.h-for-open-O_RDWR-O_CLOEXEC-and-.patch
+ delete mode 100644 package/weston/0002-libweston-backend-drm-might-need-EGL.patch
+ create mode 100644 package/weston/save-resistive-touch-calibration.sh
+ create mode 100644 package/weston/weston.ini
+ create mode 100644 package/weston/weston.sh
+
+diff --git a/package/mesa3d-demos/mesa3d-demos.mk b/package/mesa3d-demos/mesa3d-demos.mk
+index e9aa44dc2e..4289acfffb 100644
+--- a/package/mesa3d-demos/mesa3d-demos.mk
++++ b/package/mesa3d-demos/mesa3d-demos.mk
+@@ -61,7 +61,7 @@ ifeq ($(BR2_PACKAGE_LIBFREEGLUT),y)
+ MESA3D_DEMOS_DEPENDENCIES += libfreeglut
+ MESA3D_DEMOS_CONF_OPTS += --with-glut=$(STAGING_DIR)/usr
+ # osmesa support depends on glut
+-ifeq ($(BR2_PACKAGE_MESA3D_OSMESA_CLASSIC),y)
++ifeq ($(BR2_PACKAGE_MESA3D_OSMESA_GALLIUM),y)
+ MESA3D_DEMOS_CONF_OPTS += --enable-osmesa
+ else
+ MESA3D_DEMOS_CONF_OPTS += --disable-osmesa
+diff --git a/package/mesa3d-headers/mesa3d-headers.mk b/package/mesa3d-headers/mesa3d-headers.mk
+index 2a03beb29d..143de09937 100644
+--- a/package/mesa3d-headers/mesa3d-headers.mk
++++ b/package/mesa3d-headers/mesa3d-headers.mk
+@@ -12,14 +12,12 @@ endif
+ 
+ # Not possible to directly refer to mesa3d variables, because of
+ # first/second expansion trickery...
+-MESA3D_HEADERS_VERSION = 20.3.5
++MESA3D_HEADERS_VERSION = 21.1.1
+ MESA3D_HEADERS_SOURCE = mesa-$(MESA3D_HEADERS_VERSION).tar.xz
+ MESA3D_HEADERS_SITE = https://mesa.freedesktop.org/archive
+ MESA3D_HEADERS_DL_SUBDIR = mesa3d
+ MESA3D_HEADERS_LICENSE = MIT, SGI, Khronos
+ MESA3D_HEADERS_LICENSE_FILES = docs/license.rst
+-MESA3D_HEADERS_CPE_ID_VENDOR = mesa3d
+-MESA3D_HEADERS_CPE_ID_PRODUCT = mesa
+ 
+ # Only installs header files
+ MESA3D_HEADERS_INSTALL_STAGING = YES
+diff --git a/package/mesa3d/0003-vc4-add-meson-option-to-disable-optional-neon-suppor.patch b/package/mesa3d/0003-vc4-add-meson-option-to-disable-optional-neon-suppor.patch
+index 39e402361f..bb5ef00a9f 100644
+--- a/package/mesa3d/0003-vc4-add-meson-option-to-disable-optional-neon-suppor.patch
++++ b/package/mesa3d/0003-vc4-add-meson-option-to-disable-optional-neon-suppor.patch
+@@ -10,7 +10,7 @@ to force disabling it at compile time.
+ [Upstream: https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/4114]
+ Signed-off-by: Peter Seiderer <ps.report@gmx.net>
+ Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+-[rebased for 20.2.0 & 20.3.0]
++[rebased for 20.2.0, 20.3.0 & 21.1.0]
+ ---
+  meson_options.txt                    | 7 +++++++
+  src/gallium/drivers/vc4/meson.build  | 4 ++--
+@@ -67,7 +67,7 @@ index 66767e7f1f8..7446f1c3d0c 100644
+  {
+ -#ifdef USE_ARM_ASM
+ +#ifdef VC4_TILING_LT_NEON
+-         if (util_cpu_caps.has_neon) {
++         if (util_get_cpu_caps()->has_neon) {
+                  vc4_load_lt_image_neon(dst, dst_stride, src, src_stride,
+                                         cpp, box);
+ @@ -105,7 +105,7 @@ vc4_store_lt_image(void *dst, uint32_t dst_stride,
+@@ -76,7 +76,7 @@ index 66767e7f1f8..7446f1c3d0c 100644
+  {
+ -#ifdef USE_ARM_ASM
+ +#ifdef VC4_TILING_LT_NEON
+-         if (util_cpu_caps.has_neon) {
++         if (util_get_cpu_caps()->has_neon) {
+                  vc4_store_lt_image_neon(dst, dst_stride, src, src_stride,
+                                          cpp, box);
+ -- 
+diff --git a/package/mesa3d/0005-src-util-futex.h-fix-build-on-32-bit-architectures-u.patch b/package/mesa3d/0005-src-util-futex.h-fix-build-on-32-bit-architectures-u.patch
+deleted file mode 100644
+index b01db8a4b4..0000000000
+--- a/package/mesa3d/0005-src-util-futex.h-fix-build-on-32-bit-architectures-u.patch
++++ /dev/null
+@@ -1,43 +0,0 @@
+-From e501b7c17ada9c694d3f8302622b78d733485b38 Mon Sep 17 00:00:00 2001
+-From: Fabrice Fontaine <fontaine.fabrice@gmail.com>
+-Date: Sat, 21 Aug 2021 17:55:33 +0200
+-Subject: [PATCH] src/util/futex.h: fix build on 32-bit architectures using
+- 64-bit time_t
+-
+-Fix the following build failure on 32-bit architectures using 64-bit
+-time_t (e.g. riscv32):
+-
+-../src/util/futex.h: In function 'sys_futex':
+-../src/util/futex.h:39:19: error: 'SYS_futex' undeclared (first use in this function); did you mean 'sys_futex'?
+-   39 |    return syscall(SYS_futex, addr1, op, val1, timeout, addr2, val3);
+-      |                   ^~~~~~~~~
+-      |                   sys_futex
+-
+-Fixes:
+- - http://autobuild.buildroot.org/results/692700a5f967760a0b8cd358b1712f1d5a7b681e
+-
+-Signed-off-by: Fabrice Fontaine <fontaine.fabrice@gmail.com>
+-[Upstream status:
+-https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/12496]
+----
+- src/util/futex.h | 4 ++++
+- 1 file changed, 4 insertions(+)
+-
+-diff --git a/src/util/futex.h b/src/util/futex.h
+-index 43097f4cd5b..221eda9db0c 100644
+---- a/src/util/futex.h
+-+++ b/src/util/futex.h
+-@@ -34,6 +34,10 @@
+- #include <sys/syscall.h>
+- #include <sys/time.h>
+- 
+-+#ifndef SYS_futex
+-+#define SYS_futex SYS_futex_time64
+-+#endif
+-+
+- static inline long sys_futex(void *addr1, int op, int val1, const struct timespec *timeout, void *addr2, int val3)
+- {
+-    return syscall(SYS_futex, addr1, op, val1, timeout, addr2, val3);
+--- 
+-2.32.0
+-
+diff --git a/package/mesa3d/Config.in b/package/mesa3d/Config.in
+index 5816d1f79c..d1b3af2054 100644
+--- a/package/mesa3d/Config.in
++++ b/package/mesa3d/Config.in
+@@ -4,7 +4,6 @@ menuconfig BR2_PACKAGE_MESA3D
+ 	depends on !BR2_STATIC_LIBS
+ 	depends on BR2_TOOLCHAIN_HAS_SYNC_1
+ 	depends on BR2_TOOLCHAIN_HAS_THREADS_NPTL
+-	depends on !BR2_m68k || BR2_TOOLCHAIN_GCC_AT_LEAST_7 # m68k needs gcc >= 7.x
+ 	select BR2_PACKAGE_EXPAT
+ 	select BR2_PACKAGE_LIBDRM
+ 	select BR2_PACKAGE_WAYLAND_PROTOCOLS if BR2_PACKAGE_WAYLAND
+@@ -65,10 +64,9 @@ config BR2_PACKAGE_MESA3D_DRI_DRIVER
+ 	select BR2_PACKAGE_MESA3D_GBM if \
+ 		!BR2_PACKAGE_MESA3D_OPENGL_GLX && \
+ 		!BR2_PACKAGE_MESA3D_OPENGL_EGL && \
+-		!BR2_PACKAGE_MESA3D_OSMESA_CLASSIC
++		!BR2_PACKAGE_MESA3D_OSMESA_GALLIUM
+ 	select BR2_PACKAGE_XLIB_LIBXSHMFENCE if \
+-		(BR2_PACKAGE_XORG7 && BR2_TOOLCHAIN_HAS_SYNC_4 && \
+-			!BR2_RISCV_32)
++		(BR2_PACKAGE_XORG7 && BR2_TOOLCHAIN_HAS_SYNC_4)
+ 
+ config BR2_PACKAGE_MESA3D_VULKAN_DRIVER
+ 	bool
+@@ -83,11 +81,6 @@ config BR2_PACKAGE_MESA3D_DRIVER
+ config BR2_PACKAGE_MESA3D_NEEDS_XA
+ 	bool
+ 
+-# Quote from mesa3d meson.build: "kmsro driver requires one or more
+-# renderonly drivers (vc4, etnaviv, freedreno)".
+-config BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+-	bool
+-
+ # OpenGL GLX and Gallium VDPAU both needs X11
+ config BR2_PACKAGE_MESA3D_NEEDS_X11
+ 	bool
+@@ -107,7 +100,6 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_ETNAVIV
+ 	bool "Gallium Etnaviv driver"
+ 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
+ 	select BR2_PACKAGE_LIBDRM_ETNAVIV
+-	select BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+ 	help
+ 	  Mesa driver for Vivante GPUs.
+ 
+@@ -121,7 +113,6 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_FREEDRENO
+ 	# for arm/aarch64.
+ 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
+ 	select BR2_PACKAGE_LIBDRM_FREEDRENO
+-	select BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+ 	help
+ 	  Mesa driver for Freedreno GPUs.
+ 
+@@ -145,20 +136,9 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_IRIS
+ 	help
+ 	  Mesa driver for iris-based Intel GPUs.
+ 
+-config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_KMSRO
+-	bool "Gallium KMSRO driver"
+-	depends on BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+-	help
+-	  Support various sorts of KMS displays with the
+-	  renderonly layer used to attach a GPU.
+-
+-comment "Gallium KMSRO needs one or more renderonly drivers"
+-	depends on !BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+-
+ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_LIMA
+ 	bool "Gallium lima driver"
+ 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
+-	select BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+ 	help
+ 	  Mesa driver for ARM Mali Utgard GPUs.
+ 
+@@ -174,7 +154,6 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_NOUVEAU
+ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_PANFROST
+ 	bool "Gallium panfrost driver"
+ 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
+-	select BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+ 	help
+ 	  Mesa driver for ARM Mali Midgard and Bifrost GPUs.
+ 
+@@ -244,15 +223,11 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_SVGA
+ 
+ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_SWRAST
+ 	bool "Gallium swrast driver"
+-	depends on !BR2_PACKAGE_MESA3D_DRI_DRIVER_SWRAST
+ 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
+ 	help
+ 	  This is a software opengl implementation using the Gallium3D
+ 	  infrastructure.
+ 
+-comment "Gallium swrast: Only one swrast provider can be built"
+-	depends on BR2_PACKAGE_MESA3D_DRI_DRIVER_SWRAST
+-
+ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_TEGRA
+ 	bool "Gallium tegra driver"
+ 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
+@@ -266,11 +241,10 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_V3D
+ 	bool "Gallium v3d driver"
+ 	depends on (BR2_arm && BR2_ARM_CPU_HAS_NEON) || BR2_aarch64
+ 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
+-	select BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+ 	select BR2_PACKAGE_LIBDRM_VC4
+ 	select BR2_PACKAGE_MESA3D_OPENGL_EGL
+ 	help
+-	  Driver for Broadcom VC6 (rpi4) GPUs (needs kmsro and vc4).
++	  Driver for Broadcom VC6 (rpi4) GPUs (needs vc4).
+ 
+ 	  It requires a kernel 4.18+ with DRM V3D support enabled:
+ 
+@@ -281,7 +255,6 @@ config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VC4
+ 	bool "Gallium vc4 driver"
+ 	depends on BR2_arm || BR2_aarch64
+ 	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER
+-	select BR2_PACKAGE_MESA3D_GALLIUM_KMSRO
+ 	select BR2_PACKAGE_LIBDRM_VC4
+ 	select BR2_PACKAGE_MESA3D_OPENGL_EGL
+ 	help
+@@ -336,13 +309,6 @@ comment "Gallium XvMC state tracker needs X.org and gallium drivers r600 or nouv
+ 
+ comment "DRI drivers"
+ 
+-config BR2_PACKAGE_MESA3D_DRI_DRIVER_SWRAST
+-	bool "DRI swrast driver"
+-	select BR2_PACKAGE_MESA3D_DRI_DRIVER
+-	help
+-	  This is a software opengl implementation using the DRI
+-	  infrastructure.
+-
+ config BR2_PACKAGE_MESA3D_DRI_DRIVER_I915
+ 	bool "DRI i915 driver"
+ 	depends on BR2_i386 || BR2_x86_64
+@@ -407,11 +373,11 @@ comment "intel vulkan depends on X.org and needs a glibc toolchain w/ headers >=
+ 
+ comment "Off-screen Rendering"
+ 
+-config BR2_PACKAGE_MESA3D_OSMESA_CLASSIC
+-	bool "OSMesa (classic) library"
++config BR2_PACKAGE_MESA3D_OSMESA_GALLIUM
++	bool "OSMesa (Gallium) library"
++	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_SWRAST
+ 	help
+-	  The OSMesa classic API provides functions for
+-	  making off-screen renderings.
++	  The OSMesa API provides functions for off-screen rendering.
+ 
+ if BR2_PACKAGE_MESA3D_DRIVER
+ 
+@@ -475,7 +441,3 @@ comment "mesa3d needs a toolchain w/ C++, NPTL, dynamic library"
+ 	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS_NPTL || \
+ 		BR2_STATIC_LIBS
+ 	depends on BR2_TOOLCHAIN_HAS_SYNC_1
+-
+-comment "mesa3d needs a toolchain w/ gcc >= 7"
+-	depends on BR2_m68k
+-	depends on !BR2_TOOLCHAIN_GCC_AT_LEAST_7
+diff --git a/package/mesa3d/mesa3d.hash b/package/mesa3d/mesa3d.hash
+index 3d357582f3..9548f8d170 100644
+--- a/package/mesa3d/mesa3d.hash
++++ b/package/mesa3d/mesa3d.hash
+@@ -1,6 +1,6 @@
+-# From https://lists.freedesktop.org/archives/mesa-announce/2021-March/000623.html
+-sha256  909a72df63dfa3c0844ccf44a26ac028d148297ed333ab51560893923d7691ce  mesa-20.3.5.tar.xz
+-sha512  481e710ed80d8f215a8d541cfe51b960862c2403c2b9e7e6932c8236b8decb5d478871d6c73559d6d795ada143803764f3a93b2329588c80f62e2e5ec98c78a9  mesa-20.3.5.tar.xz
++# From https://lists.freedesktop.org/archives/mesa-announce/2021-May/000631.html
++sha256  eec25ea379054e8911bc5de816aeb50f581b5b708414725003d2f00386b38dd2  mesa-21.1.1.tar.xz
++sha512  79d0e2b0e1e590e7f36a082df3584010a553af0b3060bd2d3a7ace700ac7a8d1b7734ba67f2e193dd441434eeec74a16e0dbcbf8c15061b5dd5d6a1feca73d62  mesa-21.1.1.tar.xz
+ 
+ # License
+-sha256  1361129baa4519b6ed27a1bf4aeee33a58b060bf7bb9b6ea415ecede04e35e46  docs/license.rst
++sha256  998437f3f75f0c542046f83c1cb349408122268168fb13eb4ae6967aa18b7d98  docs/license.rst
+diff --git a/package/mesa3d/mesa3d.mk b/package/mesa3d/mesa3d.mk
+index 1dc6de787a..aa81cd10a8 100644
+--- a/package/mesa3d/mesa3d.mk
++++ b/package/mesa3d/mesa3d.mk
+@@ -5,13 +5,11 @@
+ ################################################################################
+ 
+ # When updating the version, please also update mesa3d-headers
+-MESA3D_VERSION = 20.3.5
++MESA3D_VERSION = 21.1.1
+ MESA3D_SOURCE = mesa-$(MESA3D_VERSION).tar.xz
+ MESA3D_SITE = https://mesa.freedesktop.org/archive
+ MESA3D_LICENSE = MIT, SGI, Khronos
+ MESA3D_LICENSE_FILES = docs/license.rst
+-MESA3D_CPE_ID_VENDOR = mesa3d
+-MESA3D_CPE_ID_PRODUCT = mesa
+ 
+ MESA3D_INSTALL_STAGING = YES
+ 
+@@ -89,7 +87,6 @@ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_ETNAVIV)  += etnaviv
+ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_FREEDRENO) += freedreno
+ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_I915)     += i915
+ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_IRIS)     += iris
+-MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_KMSRO)    += kmsro
+ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_LIMA)     += lima
+ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_NOUVEAU)  += nouveau
+ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_PANFROST) += panfrost
+@@ -103,7 +100,6 @@ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_V3D)      += v3d
+ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VC4)      += vc4
+ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VIRGL)    += virgl
+ # DRI Drivers
+-MESA3D_DRI_DRIVERS-$(BR2_PACKAGE_MESA3D_DRI_DRIVER_SWRAST) += swrast
+ MESA3D_DRI_DRIVERS-$(BR2_PACKAGE_MESA3D_DRI_DRIVER_I915)   += i915
+ MESA3D_DRI_DRIVERS-$(BR2_PACKAGE_MESA3D_DRI_DRIVER_I965)   += i965
+ MESA3D_DRI_DRIVERS-$(BR2_PACKAGE_MESA3D_DRI_DRIVER_NOUVEAU) += nouveau
+@@ -150,10 +146,10 @@ endif
+ 
+ # APIs
+ 
+-ifeq ($(BR2_PACKAGE_MESA3D_OSMESA_CLASSIC),y)
+-MESA3D_CONF_OPTS += -Dosmesa=classic
++ifeq ($(BR2_PACKAGE_MESA3D_OSMESA_GALLIUM),y)
++MESA3D_CONF_OPTS += -Dosmesa=true
+ else
+-MESA3D_CONF_OPTS += -Dosmesa=none
++MESA3D_CONF_OPTS += -Dosmesa=false
+ endif
+ 
+ # Always enable OpenGL:
+@@ -261,11 +257,4 @@ else
+ MESA3D_CONF_OPTS += -Dzstd=disabled
+ endif
+ 
+-MESA3D_CFLAGS = $(TARGET_CFLAGS)
+-
+-# m68k needs 32-bit offsets in switch tables to build
+-ifeq ($(BR2_m68k),y)
+-MESA3D_CFLAGS += -mlong-jump-table-offsets
+-endif
+-
+ $(eval $(meson-package))
+diff --git a/package/wayland-protocols/wayland-protocols.hash b/package/wayland-protocols/wayland-protocols.hash
+index 321fc62de5..1262f0f9d7 100644
+--- a/package/wayland-protocols/wayland-protocols.hash
++++ b/package/wayland-protocols/wayland-protocols.hash
+@@ -1,5 +1,5 @@
+-# From https://lists.freedesktop.org/archives/wayland-devel/2020-February/041269.html
+-md5  b0836533a3f2dc6585b1dae00341157f  wayland-protocols-1.20.tar.xz
+-sha1  e78c739a3a85477ed524b81e8bb75efe7f8bf4df  wayland-protocols-1.20.tar.xz
+-sha256  9782b7a1a863d82d7c92478497d13c758f52e7da4f197aa16443f73de77e4de7  wayland-protocols-1.20.tar.xz
++# From https://lists.freedesktop.org/archives/wayland-devel/2022-January/042102.html
++md5  0c192bf32de09ec30de4a82d1c65329c  wayland-protocols-1.25.tar.xz
++sha1  275298332d124e40e345aa82bc8f48ef8cad3480  wayland-protocols-1.25.tar.xz
++sha256  f1ff0f7199d0a0da337217dd8c99979967808dc37731a1e759e822b75b571460  wayland-protocols-1.25.tar.xz
+ sha256  f1a2b233e8a9a71c40f4aa885be08a0842ac85bb8588703c1dd7e6e6502e3124  COPYING
+diff --git a/package/wayland-protocols/wayland-protocols.mk b/package/wayland-protocols/wayland-protocols.mk
+index 84028b97d5..746d82e308 100644
+--- a/package/wayland-protocols/wayland-protocols.mk
++++ b/package/wayland-protocols/wayland-protocols.mk
+@@ -4,7 +4,7 @@
+ #
+ ################################################################################
+ 
+-WAYLAND_PROTOCOLS_VERSION = 1.20
++WAYLAND_PROTOCOLS_VERSION = 1.25
+ WAYLAND_PROTOCOLS_SITE = https://wayland.freedesktop.org/releases
+ WAYLAND_PROTOCOLS_SOURCE = wayland-protocols-$(WAYLAND_PROTOCOLS_VERSION).tar.xz
+ WAYLAND_PROTOCOLS_LICENSE = MIT
+@@ -12,4 +12,6 @@ WAYLAND_PROTOCOLS_LICENSE_FILES = COPYING
+ WAYLAND_PROTOCOLS_INSTALL_STAGING = YES
+ WAYLAND_PROTOCOLS_INSTALL_TARGET = NO
+ 
+-$(eval $(autotools-package))
++WAYLAND_PROTOCOLS_CONF_OPTS = -Dtests=false
++
++$(eval $(meson-package))
+diff --git a/package/wayland/0001-build-add-option-to-disable-tests.patch b/package/wayland/0001-build-add-option-to-disable-tests.patch
+deleted file mode 100644
+index 6ab695e909..0000000000
+--- a/package/wayland/0001-build-add-option-to-disable-tests.patch
++++ /dev/null
+@@ -1,104 +0,0 @@
+-From 283085496e06b5543771abe5cc746ff0b77cdd23 Mon Sep 17 00:00:00 2001
+-From: James Hilliard <james.hilliard1@gmail.com>
+-Date: Tue, 3 Mar 2020 15:27:51 -0700
+-Subject: [PATCH] build: add option to disable tests
+-
+-When building for a product, tests are not needed.
+-
+-Besides, one test requires a C++ compiler, which is not always
+-available.
+-
+-So, add an option to configure to disable building tests altogether.
+-
+-Signed-off-by: "Yann E. MORIN" <yann.morin.1998@free.fr>
+-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+-Signed-off-by: James Hilliard <james.hilliard1@gmail.com>
+-[Upstream status:
+-https://gitlab.freedesktop.org/wayland/wayland/-/merge_requests/66]
+----
+- Makefile.am       | 2 ++
+- configure.ac      | 9 +++++++++
+- meson.build       | 4 +++-
+- meson_options.txt | 4 ++++
+- 4 files changed, 18 insertions(+), 1 deletion(-)
+-
+-diff --git a/Makefile.am b/Makefile.am
+-index cc87392..d5d43e3 100644
+---- a/Makefile.am
+-+++ b/Makefile.am
+-@@ -162,6 +162,7 @@ pkgconfig_DATA += egl/wayland-egl.pc
+- include_HEADERS += egl/wayland-egl-backend.h
+- pkgconfig_DATA += egl/wayland-egl-backend.pc
+- 
+-+if ENABLE_TESTS
+- built_test_programs =				\
+- 	array-test				\
+- 	client-test				\
+-@@ -295,6 +296,7 @@ os_wrappers_test_LDADD = libtest-runner.la
+- 
+- exec_fd_leak_checker_SOURCES = tests/exec-fd-leak-checker.c
+- exec_fd_leak_checker_LDADD = libtest-helpers.la
+-+endif
+- 
+- EXTRA_DIST += tests/scanner-test.sh			\
+- 	protocol/tests.xml				\
+-diff --git a/configure.ac b/configure.ac
+-index dda5e48..99b7c96 100644
+---- a/configure.ac
+-+++ b/configure.ac
+-@@ -77,6 +77,13 @@ AC_ARG_ENABLE([libraries],
+- 	      [],
+- 	      [enable_libraries=yes])
+- 
+-+AC_ARG_ENABLE([tests],
+-+	      [AC_HELP_STRING([--disable-tests],
+-+			      [Disable compilation of test programs])],
+-+	      [],
+-+	      [enable_tests=yes])
+-+
+-+
+- AC_ARG_WITH([host-scanner],
+-               [AC_HELP_STRING([--with-host-scanner],
+-                               [Use installed wayland-scanner from host PATH during build])],
+-@@ -99,6 +106,8 @@ AM_CONDITIONAL(USE_HOST_SCANNER, test "x$with_host_scanner" = xyes)
+- 
+- AM_CONDITIONAL(ENABLE_LIBRARIES, test "x$enable_libraries" = xyes)
+- 
+-+AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = xyes)
+-+
+- AC_ARG_WITH(icondir, [  --with-icondir=<dir>    Look for cursor icons here],
+- 		     [  ICONDIR=$withval],
+- 		     [  ICONDIR=${datadir}/icons])
+-diff --git a/meson.build b/meson.build
+-index 5632f4e..b37bb7a 100644
+---- a/meson.build
+-+++ b/meson.build
+-@@ -83,7 +83,9 @@ subdir('src')
+- if get_option('libraries')
+- 	subdir('cursor')
+- 	subdir('egl')
+--	subdir('tests')
+-+	if get_option('tests')
+-+		subdir('tests')
+-+	endif
+- endif
+- 
+- if get_option('documentation')
+-diff --git a/meson_options.txt b/meson_options.txt
+-index 76314f7..ab4be92 100644
+---- a/meson_options.txt
+-+++ b/meson_options.txt
+-@@ -2,6 +2,10 @@ option('libraries',
+-   description: 'Compile Wayland libraries',
+-   type: 'boolean',
+-   value: 'true')
+-+option('tests',
+-+  description: 'Compile Wayland tests',
+-+  type: 'boolean',
+-+  value: 'true')
+- option('documentation',
+-   description: 'Build the documentation (requires Doxygen, dot, xmlto, xsltproc)',
+-   type: 'boolean',
+--- 
+-2.20.1
+-
+diff --git a/package/wayland/0001-build-set-c_std-c99.patch b/package/wayland/0001-build-set-c_std-c99.patch
+new file mode 100644
+index 0000000000..69f728aa11
+--- /dev/null
++++ b/package/wayland/0001-build-set-c_std-c99.patch
+@@ -0,0 +1,34 @@
++From 40c275f642e3895aeb748403fcdfd92d7d875d65 Mon Sep 17 00:00:00 2001
++From: Simon Ser <contact@emersion.fr>
++Date: Mon, 10 Jan 2022 14:54:02 +0100
++Subject: [PATCH] build: set c_std=c99
++
++Set explicitly the C standard to use to make sure we don't use
++features not available on our target platforms.
++
++Signed-off-by: Simon Ser <contact@emersion.fr>
++
++[Retrieved from:
++https://gitlab.freedesktop.org/wayland/wayland/-/commit/40c275f642e3895aeb748403fcdfd92d7d875d65]
++Signed-off-by: Fabrice Fontaine <fontaine.fabrice@gmail.com>
++---
++ meson.build | 3 ++-
++ 1 file changed, 2 insertions(+), 1 deletion(-)
++
++diff --git a/meson.build b/meson.build
++index cab267e9..e9691ffe 100644
++--- a/meson.build
+++++ b/meson.build
++@@ -5,7 +5,8 @@ project(
++ 	meson_version: '>= 0.52.1',
++ 	default_options: [
++ 		'warning_level=2',
++-		'buildtype=debugoptimized'
+++		'buildtype=debugoptimized',
+++		'c_std=c99',
++ 	]
++ )
++ wayland_version = meson.project_version().split('.')
++-- 
++GitLab
++
+diff --git a/package/wayland/0002-build-don-t-rely-on-implicit-GNU-extensions.patch b/package/wayland/0002-build-don-t-rely-on-implicit-GNU-extensions.patch
+new file mode 100644
+index 0000000000..fcafa98f46
+--- /dev/null
++++ b/package/wayland/0002-build-don-t-rely-on-implicit-GNU-extensions.patch
+@@ -0,0 +1,108 @@
++From 0d314c4a04ef1b86a1ea66107b2d1a8d1bcd93b9 Mon Sep 17 00:00:00 2001
++From: Simon Ser <contact@emersion.fr>
++Date: Mon, 10 Jan 2022 14:51:55 +0100
++Subject: [PATCH] build: don't rely on implicit GNU extensions
++
++Currently libwayland assumes GNU extensions will be available, but
++doesn't define the C standard to use. Instead, let's unconditionally
++enable POSIX extensions, and enable GNU extensions on a case-by-case
++basis as needed.
++
++Signed-off-by: Simon Ser <contact@emersion.fr>
++Signed-off-by: James Hilliard <james.hilliard1@gmail.com>
++[james.hilliard1@gmail.com: backport from upstream commit
++0d314c4a04ef1b86a1ea66107b2d1a8d1bcd93b9]
++---
++ cursor/xcursor.c        |  1 +
++ meson.build             | 10 ++++++++--
++ tests/display-test.c    |  1 +
++ tests/event-loop-test.c |  1 +
++ tests/fixed-test.c      |  1 +
++ 5 files changed, 12 insertions(+), 2 deletions(-)
++
++diff --git a/cursor/xcursor.c b/cursor/xcursor.c
++index 0506680..188be7c 100644
++--- a/cursor/xcursor.c
+++++ b/cursor/xcursor.c
++@@ -23,6 +23,7 @@
++  * SOFTWARE.
++  */
++ 
+++#define _GNU_SOURCE
++ #include "xcursor.h"
++ #include <stdio.h>
++ #include <stdlib.h>
++diff --git a/meson.build b/meson.build
++index 07bbd29..cab267e 100644
++--- a/meson.build
+++++ b/meson.build
++@@ -14,6 +14,12 @@ config_h = configuration_data()
++ config_h.set_quoted('PACKAGE', meson.project_name())
++ config_h.set_quoted('PACKAGE_VERSION', meson.project_version())
++ 
+++cc_args = []
+++if host_machine.system() != 'freebsd'
+++	cc_args += ['-D_POSIX_C_SOURCE=200809L']
+++endif
+++add_project_arguments(cc_args, language: 'c')
+++
++ compiler_flags = [
++ 	'-Wno-unused-parameter',
++ 	'-Wstrict-prototypes',
++@@ -79,7 +85,7 @@ if get_option('libraries')
++ 	]
++ 
++ 	foreach d: decls
++-		if not cc.has_header_symbol(d['header'], d['symbol'], dependencies: epoll_dep)
+++		if not cc.has_header_symbol(d['header'], d['symbol'], dependencies: epoll_dep, args: cc_args)
++ 			error('@0@ is needed to compile Wayland libraries'.format(d['symbol']))
++ 		endif
++ 	endforeach
++@@ -87,7 +93,7 @@ if get_option('libraries')
++ 	rt_dep = []
++ 	if not cc.has_function('clock_gettime', prefix: '#include <time.h>')
++ 		rt_dep = cc.find_library('rt')
++-		if not cc.has_function('clock_gettime', prefix: '#include <time.h>', dependencies: rt_dep)
+++		if not cc.has_function('clock_gettime', prefix: '#include <time.h>', dependencies: rt_dep, args: cc_args)
++ 			error('clock_gettime not found')
++ 		endif
++ 	endif
++diff --git a/tests/display-test.c b/tests/display-test.c
++index 763adc9..a6f410d 100644
++--- a/tests/display-test.c
+++++ b/tests/display-test.c
++@@ -24,6 +24,7 @@
++  * SOFTWARE.
++  */
++ 
+++#define _GNU_SOURCE
++ #include <stdbool.h>
++ #include <stdio.h>
++ #include <stdlib.h>
++diff --git a/tests/event-loop-test.c b/tests/event-loop-test.c
++index 9d43c91..a51ba8f 100644
++--- a/tests/event-loop-test.c
+++++ b/tests/event-loop-test.c
++@@ -24,6 +24,7 @@
++  * SOFTWARE.
++  */
++ 
+++#define _GNU_SOURCE
++ #include <stdlib.h>
++ #include <stdint.h>
++ #include <assert.h>
++diff --git a/tests/fixed-test.c b/tests/fixed-test.c
++index 47a4dae..0b58797 100644
++--- a/tests/fixed-test.c
+++++ b/tests/fixed-test.c
++@@ -23,6 +23,7 @@
++  * SOFTWARE.
++  */
++ 
+++#define _GNU_SOURCE
++ #include <stdlib.h>
++ #include <stdio.h>
++ #include <assert.h>
++-- 
++2.25.1
++
+diff --git a/package/wayland/0002-meson-do-not-check-for-c.patch b/package/wayland/0002-meson-do-not-check-for-c.patch
+deleted file mode 100644
+index c5819bf477..0000000000
+--- a/package/wayland/0002-meson-do-not-check-for-c.patch
++++ /dev/null
+@@ -1,29 +0,0 @@
+-From 1df9b73db6541cbc483c6ee1b21dbe0cb6e5cbfa Mon Sep 17 00:00:00 2001
+-From: Bernd Kuhls <bernd.kuhls@t-online.de>
+-Date: Wed, 29 Jul 2020 08:20:41 +0200
+-Subject: [PATCH] meson: do not check for c++
+-
+-Wayland does not need c++, fixes building with toolchains lacking c++.
+-
+-Backported from upstream PR:
+-https://gitlab.freedesktop.org/wayland/wayland/-/merge_requests/88
+-
+-Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+----
+- meson.build | 2 +-
+- 1 file changed, 1 insertion(+), 1 deletion(-)
+-
+-diff --git a/meson.build b/meson.build
+-index b67b101..e47a52d 100644
+---- a/meson.build
+-+++ b/meson.build
+-@@ -1,5 +1,5 @@
+- project(
+--	'wayland', 'c', 'cpp',
+-+	'wayland', 'c',
+- 	version: '1.18.0',
+- 	license: 'MIT',
+- 	meson_version: '>= 0.47.0',
+--- 
+-2.27.0
+-
+diff --git a/package/wayland/wayland.hash b/package/wayland/wayland.hash
+index abd8bcdf29..cd4cb1a474 100644
+--- a/package/wayland/wayland.hash
++++ b/package/wayland/wayland.hash
+@@ -1,8 +1,6 @@
+-# From https://lists.freedesktop.org/archives/wayland-devel/2020-February/041207.html
+-md5  23317697b6e3ff2e1ac8c5ba3ed57b65  wayland-1.18.0.tar.xz
+-sha1  33e5292b32a115e829458ea627201ed1e4ad4f45  wayland-1.18.0.tar.xz
+-sha256  4675a79f091020817a98fd0484e7208c8762242266967f55a67776936c2e294d  wayland-1.18.0.tar.xz
+-sha512  e30199e30c2bbd361ee695b4f3f7a4e264f10ed8f46f2c90762b5739fc578ae757dc39aa0258d8fbf0ed418553470bccd4b2730ed9705481cfccdab5de96a8fc  wayland-1.18.0.tar.xz
++# From https://lists.freedesktop.org/archives/wayland-devel/2021-December/042064.html
++sha256  b8a034154c7059772e0fdbd27dbfcda6c732df29cae56a82274f6ec5d7cd8725  wayland-1.20.0.tar.xz
++sha512  e8a1f410994b947f850799bdd0d95a2429d8467f853e62a0ab3915a4e9fe130f8aa977e03715114ab740c6ec546edea63d275ce7f927d4f3029ea126e6a7d215  wayland-1.20.0.tar.xz
+ 
+ # Locally calculated
+ sha256  6eefcb023622a463168a5c20add95fd24a38c7482622a9254a23b99b7c153061  COPYING
+diff --git a/package/wayland/wayland.mk b/package/wayland/wayland.mk
+index 6cb4a50dbb..4c19875bba 100644
+--- a/package/wayland/wayland.mk
++++ b/package/wayland/wayland.mk
+@@ -4,7 +4,7 @@
+ #
+ ################################################################################
+ 
+-WAYLAND_VERSION = 1.18.0
++WAYLAND_VERSION = 1.20.0
+ WAYLAND_SITE = https://wayland.freedesktop.org/releases
+ WAYLAND_SOURCE = wayland-$(WAYLAND_VERSION).tar.xz
+ WAYLAND_LICENSE = MIT
+diff --git a/package/weston/0001-fbdev-backend.patch b/package/weston/0001-fbdev-backend.patch
+new file mode 100644
+index 0000000000..c030988595
+--- /dev/null
++++ b/package/weston/0001-fbdev-backend.patch
+@@ -0,0 +1,33 @@
++diff -urN a/meson_options.txt b/meson_options.txt
++--- a/meson_options.txt	2023-08-03 00:02:12.000000000 +0800
+++++ b/meson_options.txt	2023-12-09 11:36:23.316889988 +0800
++@@ -9,6 +9,12 @@
++ 	description: 'Weston backend: DRM/KMS'
++ )
++ option(
+++        'backend-fbdev',
+++        type: 'boolean',
+++        value: true,
+++        description: 'Weston backend: FBDEV'
+++)
+++option(
++ 	'backend-drm-screencast-vaapi',
++ 	type: 'boolean',
++ 	value: true,
++@@ -47,14 +53,14 @@
++ option(
++ 	'deprecated-backend-fbdev',
++ 	type: 'boolean',
++-	value: false,
+++	value: true,
++ 	description: 'Weston backend: fbdev (deprecated)'
++ )
++ option(
++ 	'backend-default',
++ 	type: 'combo',
++ 	choices: [ 'auto', 'drm', 'wayland', 'x11', 'fbdev', 'headless' ],
++-	value: 'drm',
+++	value: 'fbdev',
++ 	description: 'Default backend when no parent display server detected'
++ )
++ 
+diff --git a/package/weston/0001-tests-include-fcntl.h-for-open-O_RDWR-O_CLOEXEC-and-.patch b/package/weston/0001-tests-include-fcntl.h-for-open-O_RDWR-O_CLOEXEC-and-.patch
+deleted file mode 100644
+index 2eb6bd838c..0000000000
+--- a/package/weston/0001-tests-include-fcntl.h-for-open-O_RDWR-O_CLOEXEC-and-.patch
++++ /dev/null
+@@ -1,48 +0,0 @@
+-From b10c0e843dcb8148bbe869bb15261955b94ac98c Mon Sep 17 00:00:00 2001
+-From: Denys Dmytriyenko <denys@ti.com>
+-Date: Tue, 8 Sep 2020 19:37:42 -0400
+-Subject: [PATCH] tests: include fcntl.h for open(), O_RDWR, O_CLOEXEC and
+- O_CREAT
+-
+-musl libc (unlike glibc) requires explicitly incuding fcntl.h to define open(),
+-O_RDWR, O_CLOEXEC and O_CREAT. Otherwise the build fails with the errors:
+-
+-| ../weston-9.0.0/tests/weston-test-fixture-compositor.c: In function 'wait_for_lock':
+-| ../weston-9.0.0/tests/weston-test-fixture-compositor.c:135:7: warning: implicit declaration of function 'open'; did you mean 'popen'? [-Wimplicit-function-declaration]
+-|   135 |  fd = open(lock_path, O_RDWR | O_CLOEXEC | O_CREAT, 00700);
+-|       |       ^~~~
+-|       |       popen
+-| ../weston-9.0.0/tests/weston-test-fixture-compositor.c:135:23: error: 'O_RDWR' undeclared (first use in this function)
+-|   135 |  fd = open(lock_path, O_RDWR | O_CLOEXEC | O_CREAT, 00700);
+-|       |                       ^~~~~~
+-| ../weston-9.0.0/tests/weston-test-fixture-compositor.c:135:23: note: each undeclared identifier is reported only once for each function it appears in
+-| ../weston-9.0.0/tests/weston-test-fixture-compositor.c:135:32: error: 'O_CLOEXEC' undeclared (first use in this function)
+-|   135 |  fd = open(lock_path, O_RDWR | O_CLOEXEC | O_CREAT, 00700);
+-|       |                                ^~~~~~~~~
+-| ../weston-9.0.0/tests/weston-test-fixture-compositor.c:135:44: error: 'O_CREAT' undeclared (first use in this function)
+-|   135 |  fd = open(lock_path, O_RDWR | O_CLOEXEC | O_CREAT, 00700);
+-|       |                                            ^~~~~~~
+-
+-Signed-off-by: Denys Dmytriyenko <denys@ti.com>
+-Signed-off-by: James Hilliard <james.hilliard1@gmail.com>
+-[james.hilliard1@gmail.com: backport from upstream commit
+-b10c0e843dcb8148bbe869bb15261955b94ac98c]
+----
+- tests/weston-test-fixture-compositor.c | 1 +
+- 1 file changed, 1 insertion(+)
+-
+-diff --git a/tests/weston-test-fixture-compositor.c b/tests/weston-test-fixture-compositor.c
+-index 1c32959c..c1eb26c4 100644
+---- a/tests/weston-test-fixture-compositor.c
+-+++ b/tests/weston-test-fixture-compositor.c
+-@@ -35,6 +35,7 @@
+- #include <stdarg.h>
+- #include <stdlib.h>
+- #include <errno.h>
+-+#include <fcntl.h>
+- 
+- #include "shared/helpers.h"
+- #include "weston-test-fixture-compositor.h"
+--- 
+-2.25.1
+-
+diff --git a/package/weston/0002-libweston-backend-drm-might-need-EGL.patch b/package/weston/0002-libweston-backend-drm-might-need-EGL.patch
+deleted file mode 100644
+index f504e1145b..0000000000
+--- a/package/weston/0002-libweston-backend-drm-might-need-EGL.patch
++++ /dev/null
+@@ -1,47 +0,0 @@
+-From 4b93b71067949cc5efabb9b3d59278a3f362b11c Mon Sep 17 00:00:00 2001
+-From: Heiko Thiery <heiko.thiery@gmail.com>
+-Date: Wed, 21 Oct 2020 13:33:25 +0200
+-Subject: [PATCH] libweston/backend/drm: might need EGL
+-
+-gbm-drm.c includes gl-renderer.h. When EGL is enabled, that in turns
+-includes egl.h. As such, dependencies for drm should include EGL if
+-it is available.
+-
+-This condition is modelled after a similar one in libweston/meson.build
+-
+-Reported-by: Gary Bisson <gary.bisson@boundarydevices.com>
+-Reported-by: Heiko Thiery <heiko.thiery@gmail.com>
+-Signed-off-by: Yann E. MORIN <yann.morin.1998@free.fr>
+-Cc: Refik Tuzakli <tuzakli.refik@gmail.com>
+-Cc: Thomas Petazzoni <thomas.petazzoni@bootlin.com>
+-Signed-off-by: Heiko Thiery <heiko.thiery@gmail.com>
+----
+-This patch should be a proper fix for the issue discribed in the patch from
+-Gary [1].
+-
+-Since the MR on weston upstream [2] is not merged now I add this patch
+-to have working weston with imx in buildroot.
+-
+-[1] https://patchwork.ozlabs.org/project/buildroot/patch/20200402130842.918696-3-gary.bisson@boundarydevices.com/
+-[2] https://gitlab.freedesktop.org/wayland/weston/-/merge_requests/508
+----
+- libweston/backend-drm/meson.build | 3 +++
+- 1 file changed, 3 insertions(+)
+-
+-diff --git a/libweston/backend-drm/meson.build b/libweston/backend-drm/meson.build
+-index 484c2702..e3e5b976 100644
+---- a/libweston/backend-drm/meson.build
+-+++ b/libweston/backend-drm/meson.build
+-@@ -53,6 +53,9 @@ if get_option('renderer-gl')
+- 		config_h.set('HAVE_GBM_FD_IMPORT', '1')
+- 	endif
+- 	deps_drm += dep_gbm
+-+	if dep_egl.found()
+-+		deps_drm += dep_egl
+-+	endif
+- 	srcs_drm += 'drm-gbm.c'
+- 	config_h.set('BUILD_DRM_GBM', '1')
+- endif
+---
+-2.20.1
+-
+diff --git a/package/weston/Config.in b/package/weston/Config.in
+index d07eba4c9d..1b10db3ba0 100644
+--- a/package/weston/Config.in
++++ b/package/weston/Config.in
+@@ -18,8 +18,11 @@ config BR2_PACKAGE_WESTON
+ 	select BR2_PACKAGE_JPEG
+ 	select BR2_PACKAGE_LIBINPUT
+ 	select BR2_PACKAGE_LIBDRM
++	select BR2_PACKAGE_PANGO
++	select BR2_PACKAGE_LIBERATION
+ 	# Runtime dependency
+ 	select BR2_PACKAGE_XKEYBOARD_CONFIG
++	select BR2_PACKAGE_WESTON_SHELL_DESKTOP if !BR2_PACKAGE_WESTON_HAS_SHELL
+ 	help
+ 	  Weston is the reference implementation of a Wayland
+ 	  compositor, and a useful compositor in its own right.
+@@ -30,6 +33,18 @@ config BR2_PACKAGE_WESTON
+ 
+ if BR2_PACKAGE_WESTON
+ 
++choice
++	prompt "default touchscreen"
++
++config BR2_PACKAGE_WESTON_DEFAULT_RESISTIVE_TOUCHSCREEN
++	bool "resistive"
++	select BR2_PACKAGE_WESTON_RESISTIVE_TOUCHSCREEN
++
++config BR2_PACKAGE_WESTON_DEFAULT_CAPACITIVE_TOUCHSCREEN
++	bool "capacitive"
++	select BR2_PACKAGE_WESTON_CAPACITIVE_TOUCHSCREEN
++endchoice
++
+ choice
+ 	prompt "default compositor"
+ 
+@@ -39,35 +54,36 @@ config BR2_PACKAGE_WESTON_DEFAULT_FBDEV
+ 
+ config BR2_PACKAGE_WESTON_DEFAULT_DRM
+ 	bool "drm"
+-	depends on BR2_PACKAGE_MESA3D_OPENGL_EGL || BR2_PACKAGE_IMX_GPU_VIV_OUTPUT_WL
+ 	select BR2_PACKAGE_WESTON_DRM
+ 
+-comment "drm backend needs mesa3d w/ EGL driver"
+-	depends on !BR2_PACKAGE_MESA3D_OPENGL_EGL && !BR2_PACKAGE_IMX_GPU_VIV_OUTPUT_WL
++config BR2_PACKAGE_WESTON_DEFAULT_HEADLESS
++	bool "headless"
++	select BR2_PACKAGE_WESTON_HEADLESS
++
++config BR2_PACKAGE_WESTON_DEFAULT_WAYLAND
++	bool "wayland (nested)"
++	select BR2_PACKAGE_WESTON_WAYLAND
+ 
+ config BR2_PACKAGE_WESTON_DEFAULT_X11
+-	bool "X11"
++	bool "X11 (nested)"
+ 	depends on BR2_PACKAGE_XORG7
+ 	select BR2_PACKAGE_WESTON_X11
+ 
+-comment "X11 backend needs X.org"
++comment "X11 (nested) backend needs X.org"
+ 	depends on !BR2_PACKAGE_XORG7
+ 
+ endchoice
+ 
+ config BR2_PACKAGE_WESTON_DEFAULT_COMPOSITOR
+ 	string
+-	default "fbdev" if BR2_PACKAGE_WESTON_DEFAULT_FBDEV
+-	default "drm"   if BR2_PACKAGE_WESTON_DEFAULT_DRM
+-	default "x11"   if BR2_PACKAGE_WESTON_DEFAULT_X11
++	default "fbdev"    if BR2_PACKAGE_WESTON_DEFAULT_FBDEV
++	default "drm"      if BR2_PACKAGE_WESTON_DEFAULT_DRM
++	default "headless" if BR2_PACKAGE_WESTON_DEFAULT_HEADLESS
++	default "wayland"  if BR2_PACKAGE_WESTON_DEFAULT_WAYLAND
++	default "x11"      if BR2_PACKAGE_WESTON_DEFAULT_X11
+ 
+ config BR2_PACKAGE_WESTON_DRM
+ 	bool "DRM compositor"
+-	depends on BR2_PACKAGE_MESA3D_OPENGL_EGL || BR2_PACKAGE_IMX_GPU_VIV_OUTPUT_WL
+-
+-# Uses libgbm from mesa3d
+-comment "DRM compositor needs an OpenGL EGL backend provided by mesa3d"
+-	depends on !BR2_PACKAGE_MESA3D_OPENGL_EGL && !BR2_PACKAGE_IMX_GPU_VIV_OUTPUT_WL
+ 
+ config BR2_PACKAGE_WESTON_FBDEV
+ 	bool "fbdev compositor"
+@@ -79,7 +95,9 @@ config BR2_PACKAGE_WESTON_RDP
+ 	depends on BR2_TOOLCHAIN_HAS_SYNC_4
+ 	depends on BR2_USE_WCHAR # freerdp
+ 	depends on BR2_INSTALL_LIBSTDCPP # freerdp
++	depends on BR2_PACKAGE_XORG7 # freerdp-server
+ 	select BR2_PACKAGE_FREERDP
++	select BR2_PACKAGE_FREERDP_SERVER
+ 	help
+ 	  This enables the RDP backend, which allows accessing weston
+ 	  through the network with any RDP-compliant client.
+@@ -93,36 +111,96 @@ config BR2_PACKAGE_WESTON_RDP
+ 	  /etc/freerdp/server/ so you may want to change them in a
+ 	  post-build script or a rootfs overlay.
+ 
+-comment "RDP compositor needs a toolchain w/ wchar, C++"
++comment "RDP compositor needs a toolchain w/ wchar, C++, X.org"
+ 	depends on BR2_USE_MMU
+ 	depends on BR2_TOOLCHAIN_HAS_SYNC_4
+-	depends on !BR2_USE_WCHAR || !BR2_INSTALL_LIBSTDCPP
++	depends on !BR2_USE_WCHAR || !BR2_INSTALL_LIBSTDCPP || \
++		!BR2_PACKAGE_XORG7
++
++config BR2_PACKAGE_WESTON_HEADLESS
++	bool "headless (testing) compositor"
++
++config BR2_PACKAGE_WESTON_WAYLAND
++	bool "Wayland (nested) compositor"
+ 
+ config BR2_PACKAGE_WESTON_X11
+-	bool "X11 compositor"
++	bool "X11 (nested) compositor"
+ 	depends on BR2_PACKAGE_XORG7
+ 	select BR2_PACKAGE_LIBXCB
+ 	select BR2_PACKAGE_XLIB_LIBX11
+ 
+-comment "X11 compositor needs X.org enabled"
++comment "X11 (nested) compositor needs X.org enabled"
+ 	depends on !BR2_PACKAGE_XORG7
+ 
+ config BR2_PACKAGE_WESTON_XWAYLAND
+ 	bool "XWayland support"
+-	depends on BR2_PACKAGE_XORG7
+ 	depends on BR2_PACKAGE_LIBEPOXY
++	depends on BR2_PACKAGE_XORG7 # xwayland
++	depends on BR2_USE_MMU # xwayland
++	depends on !BR2_STATIC_LIBS # xwayland
++	depends on BR2_TOOLCHAIN_HAS_THREADS # xwayland
++	depends on !BR2_RISCV_32 # xwayland -> xlib_libxshmfence
++	depends on BR2_TOOLCHAIN_HAS_SYNC_4 # xwayland -> xlib_libxshmfence
+ 	select BR2_PACKAGE_CAIRO
+ 	select BR2_PACKAGE_LIBXCB
+ 	select BR2_PACKAGE_XLIB_LIBX11
+ 	select BR2_PACKAGE_XLIB_LIBXCURSOR
++	select BR2_PACKAGE_XWAYLAND
+ 
+ comment "XWayland support needs libepoxy and X.org enabled"
+ 	depends on !BR2_PACKAGE_XORG7 || !BR2_PACKAGE_LIBEPOXY
+ 
++comment "XWayland support needs a toolchain w/ threads, dynamic library"
++	depends on BR2_USE_MMU
++	depends on !BR2_RISCV_32
++	depends on BR2_TOOLCHAIN_HAS_SYNC_4
++	depends on !BR2_TOOLCHAIN_HAS_THREADS || BR2_STATIC_LIBS
++
++# Weston needs at least one shell; this can be one of the bundled ones,
++# below, of from a third-party package, which should then select this.
++config BR2_PACKAGE_WESTON_HAS_SHELL
++	bool
++
++config BR2_PACKAGE_WESTON_SHELL_DESKTOP
++	bool "desktop shell"
++	default y
++
++config BR2_PACKAGE_WESTON_SHELL_FULLSCREEN
++	bool "fullscreen shell"
++	default y
++	select BR2_PACKAGE_WESTON_HAS_SHELL
++
++config BR2_PACKAGE_WESTON_SHELL_IVI
++	bool "ivi shell"
++	default y
++	select BR2_PACKAGE_WESTON_HAS_SHELL
++
++config BR2_PACKAGE_WESTON_SHELL_KIOSK
++	bool "kiosk shell"
++	default y
++	select BR2_PACKAGE_WESTON_HAS_SHELL
++
++config BR2_PACKAGE_WESTON_SCREENSHARE
++	bool "screenshare"
++	default y
++
++config BR2_PACKAGE_WESTON_SIMPLE_CLIENTS
++	bool "simple clients"
++	help
++	  Simple clients includes application such as:
++	  damage, dmabuf-feedback, dmabuf-egl, dmabuf-v4l, egl
++
++	  In the target filesystem, simple client program binaries are
++	  prefixed with "weston-simple-".
++
++	  Note: Weston has two sets of clients. See also the weston
++	  "demo clients" option.
++
+ config BR2_PACKAGE_WESTON_DEMO_CLIENTS
+ 	bool "demo clients"
+ 	depends on BR2_USE_MMU # pango
+ 	depends on BR2_TOOLCHAIN_HAS_SYNC_4 # pango
++	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 # pango
+ 	depends on BR2_INSTALL_LIBSTDCPP # pango
+ 	depends on BR2_TOOLCHAIN_HAS_THREADS # pango
+ 	depends on BR2_USE_WCHAR # pango
+@@ -132,11 +210,23 @@ config BR2_PACKAGE_WESTON_DEMO_CLIENTS
+ 	help
+ 	  This enables the installation of Weston's demo clients.
+ 
+-comment "demo clients needs an OpenGL ES provider, an OpenEGL-capable Wayland backend and a toolchain w/ wchar, threads, C++"
++	  Demo clients includes application such as:
++	  clickdot, confine, content_protection, dnd, editor,
++	  eventdemo, flower, fullscreen, image, multi-resource,
++	  presentation-shm, resizor, scaler, smoke, stacking,
++	  subsurfaces, tablet, transformed...
++
++	  In the target filesystem, demo client program binaries are
++	  prefixed with "weston-".
++
++	  Note: Weston has two sets of clients. See also the weston
++	  "simple clients" option.
++
++comment "demo clients needs an OpenGL ES provider, an OpenEGL-capable Wayland backend and a toolchain w/ wchar, threads, C++, gcc >= 4.9"
+ 	depends on BR2_USE_MMU
+ 	depends on BR2_TOOLCHAIN_HAS_SYNC_4
+ 	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS || \
+ 		!BR2_USE_WCHAR || !BR2_PACKAGE_HAS_LIBGLES || \
+-		!BR2_PACKAGE_HAS_LIBEGL_WAYLAND
++		!BR2_PACKAGE_HAS_LIBEGL_WAYLAND || !BR2_TOOLCHAIN_GCC_AT_LEAST_4_9
+ 
+ endif
+diff --git a/package/weston/save-resistive-touch-calibration.sh b/package/weston/save-resistive-touch-calibration.sh
+new file mode 100644
+index 0000000000..67d1d2b530
+--- /dev/null
++++ b/package/weston/save-resistive-touch-calibration.sh
+@@ -0,0 +1,3 @@
++#!/bin/sh
++
++echo 'ENV{LIBINPUT_CALIBRATION_MATRIX}="'$2 $3 $4 $5 $6 $7'"' > /etc/udev/rules.d/libinput.rules
+diff --git a/package/weston/weston.hash b/package/weston/weston.hash
+index 5a6b38686a..d3d2c4e958 100644
+--- a/package/weston/weston.hash
++++ b/package/weston/weston.hash
+@@ -1,6 +1,4 @@
+-# From https://lists.freedesktop.org/archives/wayland-devel/2020-September/041595.html
+-md5  b406da0fe9139fd39653238fde22a6cf  weston-9.0.0.tar.xz
+-sha1  90b9540a0bd6d6f7a465817f1c696d4d393183c9  weston-9.0.0.tar.xz
+-sha256  5cf5d6ce192e0eb15c1fc861a436bf21b5bb3b91dbdabbdebe83e1f83aa098fe  weston-9.0.0.tar.xz
+-sha512  ccc263f8279b7b23e5c593b4a8a023de2c3dc178b1b8d6593599171770bcfe97608de9fcb77aa1cab39255451d289d323e51c317dae190c7641282e085b84f90  weston-9.0.0.tar.xz
+-sha256  fdb65868f65d0fbdb05c2d3b779e10ce9969fa0c4b9262ba4f260e87086ab860  COPYING
++# From https://lists.freedesktop.org/archives/wayland-devel/2023-August/042925.html
++sha256  c712f9cebc66b9924550df5ace5d0359e33b5ff961ea6302de789b3fd4cf70df  weston-10.0.5.tar.xz
++sha512  ac797e777423eaef35f4cc5671da0af531de69959e8ba3d41b17d87df05582b103a91f52867036b46e6bcdf472f4f8c9ff4de001049039feccdfdbe8e2299a95  weston-10.0.5.tar.xz
++sha256   fdb65868f65d0fbdb05c2d3b779e10ce9969fa0c4b9262ba4f260e87086ab860 COPYING
+diff --git a/package/weston/weston.ini b/package/weston/weston.ini
+new file mode 100644
+index 0000000000..ab2a287a46
+--- /dev/null
++++ b/package/weston/weston.ini
+@@ -0,0 +1,20 @@
++[core]
++backend=fbdev-backend.so
++idle-time=3000
++
++[shell]
++#background-image=/etc/xdg/flowers-colorful-fresh.jpg
++background-type=scale-crop
++#panel-color=0xffff0000
++
++[libinput]
++touchscreen_calibrator=false
++calibration_helper=/etc/xdg/save-resistive-touch-calibration.sh
++
++[launcher]
++icon=/usr/share/weston/terminal.png
++path=/usr/bin/weston-terminal
++
++[launcher]
++icon=/usr/share/weston/lvgl.png
++path=/usr/bin/lvgl_fb
+diff --git a/package/weston/weston.mk b/package/weston/weston.mk
+index 8afe4bbab4..ef57c36fb2 100644
+--- a/package/weston/weston.mk
++++ b/package/weston/weston.mk
+@@ -4,20 +4,23 @@
+ #
+ ################################################################################
+ 
+-WESTON_VERSION = 9.0.0
+-WESTON_SITE = https://wayland.freedesktop.org/releases
++WESTON_VERSION = 10.0.5
++WESTON_SITE = https://gitlab.freedesktop.org/wayland/weston/-/releases/$(WESTON_VERSION)/downloads
+ WESTON_SOURCE = weston-$(WESTON_VERSION).tar.xz
+ WESTON_LICENSE = MIT
+ WESTON_LICENSE_FILES = COPYING
+ WESTON_CPE_ID_VENDOR = wayland
++WESTON_INSTALL_STAGING = YES
+ 
+ WESTON_DEPENDENCIES = host-pkgconf wayland wayland-protocols \
+-	libxkbcommon pixman libpng jpeg udev cairo libinput libdrm
++	libxkbcommon pixman libpng udev cairo libinput libdrm
+ 
+ WESTON_CONF_OPTS = \
+ 	-Dbackend-headless=false \
+ 	-Dcolor-management-colord=false \
+-	-Dremoting=false
++	-Ddoc=false \
++	-Dremoting=false \
++	-Dtools=calibrator,debug,info,terminal,touch-calibrator
+ 
+ # Uses VIDIOC_EXPBUF, only available from 3.8+
+ ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_8),y)
+@@ -33,6 +36,20 @@ else
+ WESTON_CONF_OPTS += -Dlauncher-logind=false
+ endif
+ 
++ifeq ($(BR2_PACKAGE_SEATD),y)
++WESTON_CONF_OPTS += -Dlauncher-libseat=true
++WESTON_DEPENDENCIES += seatd
++else
++WESTON_CONF_OPTS += -Dlauncher-libseat=false
++endif
++
++ifeq ($(BR2_PACKAGE_JPEG),y)
++WESTON_CONF_OPTS += -Dimage-jpeg=true
++WESTON_DEPENDENCIES += jpeg
++else
++WESTON_CONF_OPTS += -Dimage-jpeg=false
++endif
++
+ ifeq ($(BR2_PACKAGE_WEBP),y)
+ WESTON_CONF_OPTS += -Dimage-webp=true
+ WESTON_DEPENDENCIES += webp
+@@ -48,10 +65,10 @@ endef
+ define WESTON_USERS
+ 	- - weston-launch -1 - - - - Weston launcher group
+ endef
+-WESTON_CONF_OPTS += -Dweston-launch=true
++WESTON_CONF_OPTS += -Ddeprecated-weston-launch=true
+ WESTON_DEPENDENCIES += linux-pam
+ else
+-WESTON_CONF_OPTS += -Dweston-launch=false
++WESTON_CONF_OPTS += -Ddeprecated-weston-launch=false
+ endif
+ 
+ ifeq ($(BR2_PACKAGE_HAS_LIBEGL_WAYLAND)$(BR2_PACKAGE_HAS_LIBGLES),yy)
+@@ -76,16 +93,30 @@ else
+ WESTON_CONF_OPTS += -Dbackend-rdp=false
+ endif
+ 
++ifeq ($(BR2_PACKAGE_WESTON_DRM),y)
++WESTON_CONF_OPTS += -Dbackend-drm=true
++else
++WESTON_CONF_OPTS += -Dbackend-drm=false
++endif
++
+ ifeq ($(BR2_PACKAGE_WESTON_FBDEV),y)
+ WESTON_CONF_OPTS += -Dbackend-fbdev=true
++WESTON_CONF_OPTS += -Ddeprecated-backend-fbdev=true
+ else
+ WESTON_CONF_OPTS += -Dbackend-fbdev=false
++WESTON_CONF_OPTS += -Ddeprecated-backend-fbdev=false
+ endif
+ 
+-ifeq ($(BR2_PACKAGE_WESTON_DRM),y)
+-WESTON_CONF_OPTS += -Dbackend-drm=true
++ifeq ($(BR2_PACKAGE_WESTON_HEADLESS),y)
++WESTON_CONF_OPTS += -Dbackend-headless=true
+ else
+-WESTON_CONF_OPTS += -Dbackend-drm=false
++WESTON_CONF_OPTS += -Dbackend-headless=false
++endif
++
++ifeq ($(BR2_PACKAGE_WESTON_WAYLAND),y)
++WESTON_CONF_OPTS += -Dbackend-wayland=true
++else
++WESTON_CONF_OPTS += -Dbackend-wayland=false
+ endif
+ 
+ ifeq ($(BR2_PACKAGE_WESTON_X11),y)
+@@ -100,7 +131,7 @@ WESTON_CONF_OPTS += -Dbackend-default=$(call qstrip,$(BR2_PACKAGE_WESTON_DEFAULT
+ 
+ ifeq ($(BR2_PACKAGE_WESTON_XWAYLAND),y)
+ WESTON_CONF_OPTS += -Dxwayland=true
+-WESTON_DEPENDENCIES += cairo libepoxy libxcb xlib_libX11 xlib_libXcursor
++WESTON_DEPENDENCIES += cairo libepoxy libxcb xlib_libX11 xlib_libXcursor xwayland
+ else
+ WESTON_CONF_OPTS += -Dxwayland=false
+ endif
+@@ -133,6 +164,30 @@ else
+ WESTON_CONF_OPTS += -Dtest-junit-xml=false
+ endif
+ 
++ifeq ($(BR2_PACKAGE_WESTON_SHELL_DESKTOP),y)
++WESTON_CONF_OPTS += -Dshell-desktop=true
++else
++WESTON_CONF_OPTS += -Dshell-desktop=false
++endif
++
++ifeq ($(BR2_PACKAGE_WESTON_SHELL_FULLSCREEN),y)
++WESTON_CONF_OPTS += -Dshell-fullscreen=true
++else
++WESTON_CONF_OPTS += -Dshell-fullscreen=false
++endif
++
++ifeq ($(BR2_PACKAGE_WESTON_SHELL_IVI),y)
++WESTON_CONF_OPTS += -Dshell-ivi=true
++else
++WESTON_CONF_OPTS += -Dshell-ivi=false
++endif
++
++ifeq ($(BR2_PACKAGE_WESTON_SHELL_KIOSK),y)
++WESTON_CONF_OPTS += -Dshell-kiosk=true
++else
++WESTON_CONF_OPTS += -Dshell-kiosk=false
++endif
++
+ ifeq ($(BR2_PACKAGE_WESTON_DEMO_CLIENTS),y)
+ WESTON_CONF_OPTS += -Ddemo-clients=true
+ WESTON_DEPENDENCIES += pango
+@@ -140,4 +195,23 @@ else
+ WESTON_CONF_OPTS += -Ddemo-clients=false
+ endif
+ 
++define WESTON_TARGET_INSTALL_CMD
++	$(INSTALL) -m 0755 -D $(WESTON_PKGDIR)/weston.sh \
++                $(TARGET_DIR)/etc/profile.d/weston.sh
++	$(INSTALL) -m 0755 -D $(WESTON_PKGDIR)/weston.ini \
++                $(TARGET_DIR)/etc/xdg/weston/weston.ini
++endef
++
++WESTON_POST_INSTALL_TARGET_HOOKS += WESTON_TARGET_INSTALL_CMD
++
++ifeq ($(BR2_PACKAGE_WESTON_DEFAULT_RESISTIVE_TOUCHSCREEN),y)
++define WESTON_CONFIG_RESISTIVE_TOUCHSCREEN
++	$(INSTALL) -m 0755 -D $(WESTON_PKGDIR)/save-resistive-touch-calibration.sh \
++                  $(TARGET_DIR)/etc/xdg/save-resistive-touch-calibration.sh
++	$(SED) 's/^touchscreen_calibrator=.*/touchscreen_calibrator=true/g'  $(TARGET_DIR)/etc/xdg/weston/weston.ini
++	$(SED) 's/^USING_RESISTIVE_TOUCHSCREEN=.*/USING_RESISTIVE_TOUCHSCREEN=1/g' $(TARGET_DIR)/etc/profile.d/weston.sh
++endef
++WESTON_POST_INSTALL_TARGET_HOOKS += WESTON_CONFIG_RESISTIVE_TOUCHSCREEN
++endif
++
+ $(eval $(meson-package))
+diff --git a/package/weston/weston.sh b/package/weston/weston.sh
+new file mode 100644
+index 0000000000..154587aa0f
+--- /dev/null
++++ b/package/weston/weston.sh
+@@ -0,0 +1,46 @@
++#!/bin/sh
++
++if test -z "${XDG_RUNTIME_DIR}" ; then
++	export XDG_RUNTIME_DIR=/tmp/xdg
++	if ! test -d "${XDG_RUNTIME_DIR}" ; then
++		mkdir -p "${XDG_RUNTIME_DIR}"
++		chmod 0700 "${XDG_RUNTIME_DIR}"
++	fi
++fi
++
++export MESA_LOADER_DRIVER_OVERRIDE=swrast
++export LIBGL_ALWAYS_SOFTWARE=true
++
++weston_pid=$(pidof weston)
++
++if [[ -z "${weston_pid}" ]] ; then
++	weston --tty=1 --config=/etc/xdg/weston/weston.ini &
++fi
++
++# weston 9.0.0, display_id=0
++# weston 10.0.0, display_id=1
++display_id=1
++
++export WAYLAND_DISPLAY=wayland-${display_id}
++
++# for capacitive touchscreen, USING_RESISTIVE_TOUCHSCREEN=0
++# for resistive touchscreen, USING_RESISTIVE_TOUCHSCREEN=1
++USING_RESISTIVE_TOUCHSCREEN=0
++
++SYS=/sys
++TSDEVICE=
++
++for i in $(ls /dev/input/event*)
++do
++	DEVPATH=$(udevadm info --query=path --name=$i | grep 40420000.adc)
++	if [[ ! -z "$DEVPATH" ]] ; then
++		TSDEVICE=${SYS}${DEVPATH}
++	fi
++done
++
++if [[ "$USING_RESISTIVE_TOUCHSCREEN" -eq 1 ]] ; then
++	if ! test -f "/etc/udev/rules.d/libinput.rules" ; then
++		sleep 1
++		weston-touch-calibrator ${TSDEVICE}
++	fi
++fi
+-- 
+2.43.0
+

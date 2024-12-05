@@ -1,0 +1,643 @@
+From 297ac7bb3410a4f2c8db3e94856c8097b0cc0ec9 Mon Sep 17 00:00:00 2001
+From: Arthur Jiang <twjiang@nuvoton.com>
+Date: Wed, 4 Dec 2024 17:00:22 +0800
+Subject: [PATCH 3/3] package/nvt-lvgl-wayland: version 8.3.0
+
+---
+ package/Config.in                             |   1 +
+ .../0001-fix-run-lvgl-with-wayland.patch      | 154 ++++++++++++++++++
+ .../0002-fix-window-title-not-displayed.patch |  32 ++++
+ .../0003-support-transparent-titlebar.patch   |  25 +++
+ ...ackground-when-close-toplevel-window.patch |  61 +++++++
+ package/nvt-lvgl-wayland/0005-xdg-shell.patch |  59 +++++++
+ .../0006-install-drivers.patch                |  32 ++++
+ ...indow-when-disable-window-decoration.patch | 110 +++++++++++++
+ package/nvt-lvgl-wayland/Config.in            |   4 +
+ package/nvt-lvgl-wayland/lvgl.png             | Bin 0 -> 841 bytes
+ package/nvt-lvgl-wayland/nvt-lvgl-wayland.mk  |  42 +++++
+ 11 files changed, 520 insertions(+)
+ create mode 100644 package/nvt-lvgl-wayland/0001-fix-run-lvgl-with-wayland.patch
+ create mode 100644 package/nvt-lvgl-wayland/0002-fix-window-title-not-displayed.patch
+ create mode 100644 package/nvt-lvgl-wayland/0003-support-transparent-titlebar.patch
+ create mode 100644 package/nvt-lvgl-wayland/0004-fix-process-persist-in-background-when-close-toplevel-window.patch
+ create mode 100644 package/nvt-lvgl-wayland/0005-xdg-shell.patch
+ create mode 100644 package/nvt-lvgl-wayland/0006-install-drivers.patch
+ create mode 100644 package/nvt-lvgl-wayland/0007-moving-window-when-disable-window-decoration.patch
+ create mode 100644 package/nvt-lvgl-wayland/Config.in
+ create mode 100644 package/nvt-lvgl-wayland/lvgl.png
+ create mode 100644 package/nvt-lvgl-wayland/nvt-lvgl-wayland.mk
+
+diff --git a/package/Config.in b/package/Config.in
+index c006873fe9..dd59f7e16d 100644
+--- a/package/Config.in
++++ b/package/Config.in
+@@ -330,6 +330,7 @@ comment "Graphic libraries"
+ 	source "package/lite/Config.in"
+ 	source "package/mesa3d/Config.in"
+ 	source "package/mesa3d-headers/Config.in"
++	source "package/nvt-lvgl-wayland/Config.in"
+ 	source "package/ocrad/Config.in"
+ 	source "package/ogre/Config.in"
+ 	source "package/psplash/Config.in"
+diff --git a/package/nvt-lvgl-wayland/0001-fix-run-lvgl-with-wayland.patch b/package/nvt-lvgl-wayland/0001-fix-run-lvgl-with-wayland.patch
+new file mode 100644
+index 0000000000..7f2159e9f2
+--- /dev/null
++++ b/package/nvt-lvgl-wayland/0001-fix-run-lvgl-with-wayland.patch
+@@ -0,0 +1,154 @@
++diff '--exclude=.git' -urN a/CMakeLists.txt b/CMakeLists.txt
++--- a/CMakeLists.txt	2023-05-31 09:39:07.730490288 +0800
+++++ b/CMakeLists.txt	2023-05-30 19:55:21.801034230 +0800
++@@ -8,3 +8,6 @@
++ 
++ add_executable(${PROJECT_NAME} main.c mouse_cursor_icon.c)
++ target_link_libraries(${PROJECT_NAME} PRIVATE lvgl lvgl::examples lvgl::demos lvgl::drivers)
+++
+++set(CMAKE_INSTALL_PREFIX "/usr")
+++install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
++diff '--exclude=.git' -urN a/lv_drivers/CMakeLists.txt b/lv_drivers/CMakeLists.txt
++--- a/lv_drivers/CMakeLists.txt	2023-05-31 09:43:08.263265114 +0800
+++++ b/lv_drivers/CMakeLists.txt	2023-05-30 17:26:05.766214198 +0800
++@@ -30,6 +30,7 @@
++   set(INC_INSTALL_DIR "include/lvgl/lv_drivers")
++ endif()
++ 
+++#[[
++ install(
++   DIRECTORY "${CMAKE_SOURCE_DIR}/"
++   DESTINATION "${CMAKE_INSTALL_PREFIX}/${INC_INSTALL_DIR}/"
++@@ -56,3 +57,4 @@
++   LIBRARY DESTINATION "${LIB_INSTALL_DIR}"
++   RUNTIME DESTINATION "${LIB_INSTALL_DIR}"
++   PUBLIC_HEADER DESTINATION "${INC_INSTALL_DIR}")
+++]]
++diff '--exclude=.git' -urN a/lv_drivers/wayland/wayland.c b/lv_drivers/wayland/wayland.c
++--- a/lv_drivers/wayland/wayland.c	2023-05-31 09:43:08.271264320 +0800
+++++ b/lv_drivers/wayland/wayland.c	2023-05-31 09:31:39.638032091 +0800
++@@ -1950,12 +1950,16 @@
++         lv_disp_flush_ready(disp_drv);
++         return;
++     }
+++#if 0 
+++    /* https://github.com/lvgl/lv_drivers/issues/225 
+++       Temporarily patched by Nuvoton@Arthur Jiang */
++     else if (buffer->busy)
++     {
++         LV_LOG_WARN("skip flush since wayland backing buffer is busy");
++         lv_disp_flush_ready(disp_drv);
++         return;
++     }
+++#endif
++ 
++     int32_t x;
++     int32_t y;
++diff '--exclude=.git' -urN a/lv_drv_conf.h b/lv_drv_conf.h
++--- a/lv_drv_conf.h	2023-05-31 09:39:07.730490288 +0800
+++++ b/lv_drv_conf.h	2023-05-30 11:14:19.039791524 +0800
++@@ -174,7 +174,7 @@
++  *  Wayland drivers (monitor, mouse, keyboard, touchscreen)
++  *---------------------------------------*/
++ #ifndef USE_WAYLAND
++-#  define USE_WAYLAND       0
+++#  define USE_WAYLAND       1
++ #endif
++ 
++ #if USE_WAYLAND
++@@ -316,7 +316,7 @@
++  *  Linux frame buffer device (/dev/fbx)
++  *-----------------------------------------*/
++ #ifndef USE_FBDEV
++-#  define USE_FBDEV           1
+++#  define USE_FBDEV           0
++ #endif
++ 
++ #if USE_FBDEV
++diff '--exclude=.git' -urN a/lvgl/env_support/cmake/custom.cmake b/lvgl/env_support/cmake/custom.cmake
++--- a/lvgl/env_support/cmake/custom.cmake	2023-05-31 09:43:08.487242877 +0800
+++++ b/lvgl/env_support/cmake/custom.cmake	2023-05-30 17:27:38.210573359 +0800
++@@ -57,6 +57,7 @@
++   set(INC_INSTALL_DIR "include/lvgl")
++ endif()
++ 
+++#[[
++ install(
++   DIRECTORY "${CMAKE_SOURCE_DIR}/src"
++   DESTINATION "${CMAKE_INSTALL_PREFIX}/${INC_INSTALL_DIR}/"
++@@ -77,3 +78,4 @@
++   LIBRARY DESTINATION "${LIB_INSTALL_DIR}"
++   RUNTIME DESTINATION "${LIB_INSTALL_DIR}"
++   PUBLIC_HEADER DESTINATION "${INC_INSTALL_DIR}")
+++ ]]
++diff '--exclude=.git' -urN a/main.c b/main.c
++--- a/main.c	2023-05-31 09:39:07.730490288 +0800
+++++ b/main.c	2023-05-31 05:25:08.423005353 +0800
++@@ -1,6 +1,8 @@
++ #include "lvgl/lvgl.h"
++ #include "lvgl/demos/lv_demos.h"
+++#if USE_FBDEV
++ #include "lv_drivers/display/fbdev.h"
+++#endif
++ #include "lv_drivers/indev/evdev.h"
++ #include <unistd.h>
++ #include <pthread.h>
++@@ -9,11 +11,50 @@
++ 
++ #define DISP_BUF_SIZE (128 * 1024)
++ 
+++#if USE_WAYLAND
+++#  if LV_USE_DEMO_WIDGETS
+++#    define WINDOW_WIDTH    640
+++#    define WINDOW_HEIGHT   360
+++#    define WINDOW_TITLE    "Wayland Client - Widgets"
+++#  elif LV_USE_DEMO_BENCHMARK
+++#    define WINDOW_WIDTH    512
+++#    define WINDOW_HEIGHT   300
+++#    define WINDOW_TITLE    "Wayland Client - Benchmark"
+++#  else
+++#    define WINDOW_WIDTH    640
+++#    define WINDOW_HEIGHT   360
+++#    define WINDOW_TITLE    "Wayland Client - LVGL"
+++#  endif
+++#endif
+++
++ int main(void)
++ {
++     /*LittlevGL init*/
++     lv_init();
++ 
+++#if USE_WAYLAND
+++    /*Wayland init*/
+++    lv_wayland_init();
+++
+++    /*Create Wayland window*/
+++    lv_wayland_create_window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, NULL);
+++
+++#if LV_USE_DEMO_WIDGETS
+++    lv_demo_widgets();
+++#elif LV_USE_DEMO_BENCHMARK
+++    lv_demo_benchmark();
+++#endif
+++
+++    while (1) {
+++        lv_timer_handler();
+++        usleep(5000);
+++    }
+++
+++    lv_wayland_deinit();
+++
+++#endif
+++
+++#if USE_FBDEV
++     /*Linux frame buffer device init*/
++     fbdev_init();
++ 
++@@ -59,6 +100,7 @@
++         usleep(5000);
++     }
++ 
+++#endif
++     return 0;
++ }
++ 
+diff --git a/package/nvt-lvgl-wayland/0002-fix-window-title-not-displayed.patch b/package/nvt-lvgl-wayland/0002-fix-window-title-not-displayed.patch
+new file mode 100644
+index 0000000000..fa0b2fe099
+--- /dev/null
++++ b/package/nvt-lvgl-wayland/0002-fix-window-title-not-displayed.patch
+@@ -0,0 +1,32 @@
++diff -urN a/lv_drivers/wayland/wayland.c b/lv_drivers/wayland/wayland.c
++--- a/lv_drivers/wayland/wayland.c	2023-06-16 13:27:13.675843899 +0800
+++++ b/lv_drivers/wayland/wayland.c	2023-06-16 13:24:40.013274844 +0800
++@@ -2393,6 +2393,28 @@
++         LV_LOG_ERROR("failed to register keyboard indev");
++     }
++ 
+++#if LV_WAYLAND_CLIENT_SIDE_DECORATIONS
+++    /* Patch by Arthur Jiang @nuvoton REF: https://github.com/lvgl/lv_drivers/issues/260 */
+++    if (application.opt_disable_decorations == false)
+++    {
+++        // Arthur: lv_wayland_draw_window_title
+++        struct graphic_object * titlebar = window->decoration[OBJECT_TITLEBAR];
+++        lv_obj_t * canvas = lv_canvas_create(NULL);
+++
+++        lv_canvas_set_buffer(canvas, (lv_color_t *)titlebar->buffer.base, titlebar->width,
+++            titlebar->height, LV_IMG_CF_TRUE_COLOR_ALPHA);
+++
+++        lv_draw_label_dsc_t label_dsc;
+++        lv_draw_label_dsc_init(&label_dsc);
+++        label_dsc.font = &lv_font_montserrat_14;
+++        label_dsc.color = lv_color_make(0xff, 0xff, 0xff);
+++
+++        lv_canvas_draw_text(canvas, 6, 6, titlebar->width, &label_dsc, title);
+++
+++        lv_obj_del(canvas);
+++    }
+++#endif
+++
++     return window->lv_disp;
++ }
++ 
+diff --git a/package/nvt-lvgl-wayland/0003-support-transparent-titlebar.patch b/package/nvt-lvgl-wayland/0003-support-transparent-titlebar.patch
+new file mode 100644
+index 0000000000..41cb4c947c
+--- /dev/null
++++ b/package/nvt-lvgl-wayland/0003-support-transparent-titlebar.patch
+@@ -0,0 +1,25 @@
++diff -urN a/lv_drivers/wayland/wayland.c b/lv_drivers/wayland/wayland.c
++--- a/lv_drivers/wayland/wayland.c	2023-06-16 15:15:48.672672052 +0800
+++++ b/lv_drivers/wayland/wayland.c	2023-06-16 15:12:53.181514483 +0800
++@@ -1493,8 +1493,9 @@
++     switch (decoration->type)
++     {
++     case OBJECT_TITLEBAR:
+++	/* Arthur Jiang @nuvoton (C) transparent titlebar */
++         lv_color_fill((lv_color_t *)buffer->base,
++-                      lv_color_make(0x66, 0x66, 0x66), (decoration->width * decoration->height));
+++                  (lv_color_t)LV_COLOR_ARGB(160, 186, 20, 2), (decoration->width * decoration->height));
++         break;
++     case OBJECT_BUTTON_CLOSE:
++         lv_color_fill((lv_color_t *)buffer->base,
++diff -urN a/lvgl/src/misc/lv_color.h b/lvgl/src/misc/lv_color.h
++--- a/lvgl/src/misc/lv_color.h	2023-02-14 21:55:24.000000000 +0800
+++++ b/lvgl/src/misc/lv_color.h	2023-06-16 15:14:19.118810143 +0800
++@@ -165,6 +165,7 @@
++ 
++ # define _LV_COLOR_ZERO_INITIALIZER32  {{0x00, 0x00, 0x00, 0x00}}
++ # define LV_COLOR_MAKE32(r8, g8, b8) {{b8, g8, r8, 0xff}} /*Fix 0xff alpha*/
+++# define LV_COLOR_ARGB(a8, r8, g8, b8) {{b8, g8, r8, a8}} /*Arthur Jiang @nuvoton (C)*/
++ 
++ /*---------------------------------------
++  * Macros for the current color depth
+diff --git a/package/nvt-lvgl-wayland/0004-fix-process-persist-in-background-when-close-toplevel-window.patch b/package/nvt-lvgl-wayland/0004-fix-process-persist-in-background-when-close-toplevel-window.patch
+new file mode 100644
+index 0000000000..ed969449ba
+--- /dev/null
++++ b/package/nvt-lvgl-wayland/0004-fix-process-persist-in-background-when-close-toplevel-window.patch
+@@ -0,0 +1,61 @@
++diff -urN a/lv_conf.h b/lv_conf.h
++--- a/lv_conf.h	2023-02-14 21:55:24.000000000 +0800
+++++ b/lv_conf.h	2023-07-05 21:00:22.640925131 +0800
++@@ -333,9 +333,9 @@
++  *https://fonts.google.com/specimen/Montserrat*/
++ #define LV_FONT_MONTSERRAT_8  0
++ #define LV_FONT_MONTSERRAT_10 0
++-#define LV_FONT_MONTSERRAT_12 0
+++#define LV_FONT_MONTSERRAT_12 1
++ #define LV_FONT_MONTSERRAT_14 1
++-#define LV_FONT_MONTSERRAT_16 0
+++#define LV_FONT_MONTSERRAT_16 1
++ #define LV_FONT_MONTSERRAT_18 0
++ #define LV_FONT_MONTSERRAT_20 0
++ #define LV_FONT_MONTSERRAT_22 0
++diff -urN a/main.c b/main.c
++--- a/main.c	2023-07-05 21:03:42.470287038 +0800
+++++ b/main.c	2023-07-05 20:41:23.099437204 +0800
++@@ -15,15 +15,19 @@
++ #  if LV_USE_DEMO_WIDGETS
++ #    define WINDOW_WIDTH    640
++ #    define WINDOW_HEIGHT   360
++-#    define WINDOW_TITLE    "Wayland Client - Widgets"
+++#    define WINDOW_TITLE    "LVGL - Widgets"
++ #  elif LV_USE_DEMO_BENCHMARK
++ #    define WINDOW_WIDTH    512
++ #    define WINDOW_HEIGHT   300
++-#    define WINDOW_TITLE    "Wayland Client - Benchmark"
+++#    define WINDOW_TITLE    "LVGL - Benchmark"
+++#  elif LV_USE_DEMO_MUSIC
+++#    define WINDOW_WIDTH    800
+++#    define WINDOW_HEIGHT   450
+++#    define WINDOW_TITLE    "LVGL - Music"
++ #  else
++ #    define WINDOW_WIDTH    640
++ #    define WINDOW_HEIGHT   360
++-#    define WINDOW_TITLE    "Wayland Client - LVGL"
+++#    define WINDOW_TITLE    "LVGL - Demo"
++ #  endif
++ #endif
++ 
++@@ -37,15 +41,17 @@
++     lv_wayland_init();
++ 
++     /*Create Wayland window*/
++-    lv_wayland_create_window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, NULL);
+++    lv_disp_t *display = lv_wayland_create_window(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, NULL);
++ 
++ #if LV_USE_DEMO_WIDGETS
++     lv_demo_widgets();
++ #elif LV_USE_DEMO_BENCHMARK
++     lv_demo_benchmark();
+++#elif LV_USE_DEMO_MUSIC
+++    lv_demo_music();
++ #endif
++ 
++-    while (1) {
+++    while (lv_wayland_window_is_open(display)) {
++         lv_timer_handler();
++         usleep(5000);
++     }
+diff --git a/package/nvt-lvgl-wayland/0005-xdg-shell.patch b/package/nvt-lvgl-wayland/0005-xdg-shell.patch
+new file mode 100644
+index 0000000000..9f24e5a316
+--- /dev/null
++++ b/package/nvt-lvgl-wayland/0005-xdg-shell.patch
+@@ -0,0 +1,59 @@
++diff -urN a/lv_drivers/wayland/wayland.c b/lv_drivers/wayland/wayland.c
++--- a/lv_drivers/wayland/wayland.c	2023-12-11 09:29:48.685840521 +0800
+++++ b/lv_drivers/wayland/wayland.c	2023-12-11 09:23:25.953855621 +0800
++@@ -33,7 +33,7 @@
++ #endif
++ 
++ #if LV_WAYLAND_XDG_SHELL
++-#include "protocols/wayland-xdg-shell-client-protocol.h"
+++#include "protocols/xdg-shell-client-protocol.h"
++ #endif
++ 
++ /*********************
++@@ -1147,7 +1147,6 @@
++ static const struct xdg_toplevel_listener xdg_toplevel_listener = {
++     .configure = xdg_toplevel_handle_configure,
++     .close = xdg_toplevel_handle_close,
++-    .configure_bounds = xdg_toplevel_handle_configure_bounds
++ };
++ 
++ static void xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base, uint32_t serial)
++@@ -1767,7 +1766,7 @@
++     }
++ 
++     // Create shell surface
++-     if (0)
+++    if (0)
++     {
++         // Needed for #if madness below
++     }
++diff -urN a/lv_drv_conf.h b/lv_drv_conf.h
++--- a/lv_drv_conf.h	2023-12-11 09:29:48.669839341 +0800
+++++ b/lv_drv_conf.h	2023-12-11 09:23:35.418540367 +0800
++@@ -184,11 +184,11 @@
++ #  endif
++ /* Support for (deprecated) wl-shell protocol */
++ #  ifndef LV_WAYLAND_WL_SHELL
++-#    define LV_WAYLAND_WL_SHELL 1
+++#    define LV_WAYLAND_WL_SHELL 0
++ #  endif
++ /* Support for xdg-shell protocol */
++ #  ifndef LV_WAYLAND_XDG_SHELL
++-#    define LV_WAYLAND_XDG_SHELL 0
+++#    define LV_WAYLAND_XDG_SHELL 1
++ #  endif
++ #endif
++ 
++diff -urN a/main.c b/main.c
++--- a/main.c	2023-12-11 09:29:48.701841701 +0800
+++++ b/main.c	2023-12-11 09:23:54.979957043 +0800
++@@ -4,8 +4,8 @@
++ #include "lv_drivers/display/fbdev.h"
++ #endif
++ #include "lv_drivers/indev/evdev.h"
+++#include "lv_drivers/wayland/wayland.h"
++ #include <unistd.h>
++-#include <pthread.h>
++ #include <time.h>
++ #include <sys/time.h>
++ 
+diff --git a/package/nvt-lvgl-wayland/0006-install-drivers.patch b/package/nvt-lvgl-wayland/0006-install-drivers.patch
+new file mode 100644
+index 0000000000..a90a4a59e9
+--- /dev/null
++++ b/package/nvt-lvgl-wayland/0006-install-drivers.patch
+@@ -0,0 +1,32 @@
++diff -urN a/lv_drivers/CMakeLists.txt b/lv_drivers/CMakeLists.txt
++--- a/lv_drivers/CMakeLists.txt	2024-02-06 00:19:12.834385921 -0500
+++++ b/lv_drivers/CMakeLists.txt	2024-02-06 00:17:18.980116878 -0500
++@@ -30,7 +30,6 @@
++   set(INC_INSTALL_DIR "include/lvgl/lv_drivers")
++ endif()
++ 
++-#[[
++ install(
++   DIRECTORY "${CMAKE_SOURCE_DIR}/"
++   DESTINATION "${CMAKE_INSTALL_PREFIX}/${INC_INSTALL_DIR}/"
++@@ -57,4 +56,3 @@
++   LIBRARY DESTINATION "${LIB_INSTALL_DIR}"
++   RUNTIME DESTINATION "${LIB_INSTALL_DIR}"
++   PUBLIC_HEADER DESTINATION "${INC_INSTALL_DIR}")
++-]]
++diff -urN a/lvgl/env_support/cmake/custom.cmake b/lvgl/env_support/cmake/custom.cmake
++--- a/lvgl/env_support/cmake/custom.cmake	2024-02-06 00:19:12.834385921 -0500
+++++ b/lvgl/env_support/cmake/custom.cmake	2024-02-06 00:18:04.166602208 -0500
++@@ -57,7 +57,6 @@
++   set(INC_INSTALL_DIR "include/lvgl")
++ endif()
++ 
++-#[[
++ install(
++   DIRECTORY "${CMAKE_SOURCE_DIR}/src"
++   DESTINATION "${CMAKE_INSTALL_PREFIX}/${INC_INSTALL_DIR}/"
++@@ -78,4 +77,3 @@
++   LIBRARY DESTINATION "${LIB_INSTALL_DIR}"
++   RUNTIME DESTINATION "${LIB_INSTALL_DIR}"
++   PUBLIC_HEADER DESTINATION "${INC_INSTALL_DIR}")
++- ]]
+diff --git a/package/nvt-lvgl-wayland/0007-moving-window-when-disable-window-decoration.patch b/package/nvt-lvgl-wayland/0007-moving-window-when-disable-window-decoration.patch
+new file mode 100644
+index 0000000000..38dfb513ef
+--- /dev/null
++++ b/package/nvt-lvgl-wayland/0007-moving-window-when-disable-window-decoration.patch
+@@ -0,0 +1,110 @@
++diff -urN a/lv_conf.h b/lv_conf.h
++--- a/lv_conf.h	2024-02-06 19:43:13.839274971 -0500
+++++ b/lv_conf.h	2024-02-06 19:42:29.933115054 -0500
++@@ -620,7 +620,7 @@
++ #define LV_USE_GIF 0
++ 
++ /*QR code library*/
++-#define LV_USE_QRCODE 0
+++#define LV_USE_QRCODE 1
++ 
++ /*FreeType library*/
++ #define LV_USE_FREETYPE 0
++diff -urN a/lv_drivers/CMakeLists.txt b/lv_drivers/CMakeLists.txt
++--- a/lv_drivers/CMakeLists.txt	2024-02-06 19:43:13.827274412 -0500
+++++ b/lv_drivers/CMakeLists.txt	2024-02-06 19:41:20.529051593 -0500
++@@ -3,7 +3,7 @@
++ project(lv_drivers HOMEPAGE_URL https://github.com/lvgl/lv_drivers/)
++ 
++ # Option to build as shared library (as opposed to static), default: OFF
++-option(BUILD_SHARED_LIBS "Build shared as library (as opposed to static)" OFF)
+++option(BUILD_SHARED_LIBS "Build shared as library (as opposed to static)" ON)
++ 
++ file(GLOB_RECURSE SOURCES ./*.c)
++ 
++diff -urN a/lv_drivers/wayland/wayland.c b/lv_drivers/wayland/wayland.c
++--- a/lv_drivers/wayland/wayland.c	2024-02-06 19:43:13.815273854 -0500
+++++ b/lv_drivers/wayland/wayland.c	2024-02-06 19:41:12.464509190 -0500
++@@ -324,7 +324,7 @@
++     app->pointer_obj->input.pointer.y = pos_y;
++ 
++ #if (LV_WAYLAND_CLIENT_SIDE_DECORATIONS && LV_WAYLAND_XDG_SHELL)
++-    if (!app->pointer_obj->window->xdg_toplevel || app->opt_disable_decorations)
+++    if (!app->pointer_obj->window->xdg_toplevel /* Arthur || app->opt_disable_decorations*/)
++     {
++         return;
++     }
++@@ -466,6 +466,30 @@
++     int pos_y = app->pointer_obj->input.pointer.y;
++ #endif
++ 
+++    if (application.opt_disable_decorations)
+++    {
+++        /* Arthur Jiang: patched by Nuvoton */
+++        if ((button == BTN_LEFT) && (state == WL_POINTER_BUTTON_STATE_PRESSED))
+++        {
+++#if LV_WAYLAND_XDG_SHELL
+++            if (window->xdg_toplevel)
+++            {
+++                xdg_toplevel_move(window->xdg_toplevel, app->wl_seat, serial);
+++                window->flush_pending = true;
+++            }
+++#endif
+++
+++#if LV_WAYLAND_WL_SHELL
+++            if (window->wl_shell_surface)
+++            {
+++                wl_shell_surface_move(window->wl_shell_surface, app->wl_seat, serial);
+++                window->flush_pending = true;
+++            }
+++#endif
+++            return;
+++        }
+++    }
+++
++     switch (app->pointer_obj->type)
++     {
++     case OBJECT_WINDOW:
++@@ -900,6 +924,11 @@
++     switch (app->touch_obj->type)
++     {
++     case OBJECT_TITLEBAR:
+++    case OBJECT_WINDOW:
+++        if (!app->opt_disable_decorations && app->touch_obj->type == OBJECT_WINDOW)
+++	{
+++		break; /* Arthur */
+++	}
++ #if LV_WAYLAND_XDG_SHELL
++         if (window->xdg_toplevel)
++         {
++@@ -1147,6 +1176,7 @@
++ static const struct xdg_toplevel_listener xdg_toplevel_listener = {
++     .configure = xdg_toplevel_handle_configure,
++     .close = xdg_toplevel_handle_close,
+++    .configure_bounds = xdg_toplevel_handle_configure_bounds
++ };
++ 
++ static void xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base, uint32_t serial)
++@@ -2347,6 +2377,10 @@
++     window->lv_disp_drv.hor_res = hor_res;
++     window->lv_disp_drv.ver_res = ver_res;
++     window->lv_disp_drv.flush_cb = _lv_wayland_flush;
+++#if LV_COLOR_SCREEN_TRANSP
+++    /* Arthur: transparent background */
+++    window->lv_disp_drv.screen_transp = 1;
+++#endif
++     window->lv_disp_drv.user_data = window;
++ 
++     /* Register display */
++diff -urN a/lvgl/env_support/cmake/custom.cmake b/lvgl/env_support/cmake/custom.cmake
++--- a/lvgl/env_support/cmake/custom.cmake	2024-02-06 19:43:13.831274598 -0500
+++++ b/lvgl/env_support/cmake/custom.cmake	2024-02-06 19:41:27.885531508 -0500
++@@ -12,7 +12,7 @@
++ get_filename_component(LV_CONF_DIR ${LV_CONF_PATH} DIRECTORY)
++ 
++ # Option to build shared libraries (as opposed to static), default: OFF
++-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+++option(BUILD_SHARED_LIBS "Build shared libraries" ON)
++ 
++ file(GLOB_RECURSE SOURCES ${LVGL_ROOT_DIR}/src/*.c)
++ file(GLOB_RECURSE EXAMPLE_SOURCES ${LVGL_ROOT_DIR}/examples/*.c)
+diff --git a/package/nvt-lvgl-wayland/Config.in b/package/nvt-lvgl-wayland/Config.in
+new file mode 100644
+index 0000000000..1e9bb2c5bc
+--- /dev/null
++++ b/package/nvt-lvgl-wayland/Config.in
+@@ -0,0 +1,4 @@
++config BR2_PACKAGE_NVT_LVGL_WAYLAND
++        bool "lvgl 8.3.0 with Wayland modified by Nuvoton"
++	depends on BR2_PACKAGE_WESTON
++        select BR2_PACKAGE_HOST_CMAKE
+diff --git a/package/nvt-lvgl-wayland/lvgl.png b/package/nvt-lvgl-wayland/lvgl.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..5118f474f3b6d103333cf4f0c1ffb9dd51e0ef62
+GIT binary patch
+literal 841
+zcmV-P1GfB$P)<h;3K|Lk000e1NJLTq000;O000;W1^@s6;CDUv00001b5ch_0Itp)
+z=>Px#1ZP1_K>z@;j|==^1poj532;bRa{vGf5dZ)S5dnW>Uy%R+00v@9M??Vs0RI60
+zpuMM)00007bV*G`2jm6?2OKBAtq2tW00Oy5L_t(YOSM)_YZO5cebuuYvoX<xO^lk5
+zH6H{C9`v9HYK))<1tF+^Krfy==~)nudh+Zq2)X(P^dtz15KvJ;BjgZ2laMuWrrKBY
+zv2NB`47>Q?&309FS5?<^^{jxXR4QixcV5+(08!Jm4Ce#-_yTovi;M3TWT;Y^3E&=y
+zNLM<gWza`D0#xy_SingqKDg+d>+;^CO{!}2EQ<6g2i`f1gkfj_bcao72O<vecq#Cw
+zdb&%~6c$rci57`cp$#xWK|f10y;`lFrm!<LsAJhW>T6d+o~{Yv3WyA=$~+>>QB}^W
+z;=JIKQZkXW--N8G1<nng2d)w)J<dsQs)->uHnA&M#<_SL$4C%}Xjyfj=%bsg@nn|K
+zb`dA$qpPwE94!E|)P?b@N>HGAr3ZL0I68K><Z-Lz0I%qz8@Ta{%9?l5<N@Gv|JdZA
+zeHz|rH2{-_Z1Q0aGn#Bii*$5sb6SQiR?DrCyf3n0TWBl0?Z7d`fVUHJXjODPe)dXQ
+zhV5X}>K&44-7`iE9!4VHDCXU;aryq$C-NK^>Htn~wleEvQL>5EN#L<Nens(PVFoHZ
+zY;{+;*QmVlbG!@wniDtGc*<(W^bK%?H8{JG=;K*M+If<y^fq5++f#MHw#r?_b}JtT
+z;U3`O{*eRMI}3$-8ri=8U`rni=JY|8Tmdd|+F{yn+wv^^tWOwVwr_NNqEF<0vjCQu
+zeC5Lmozdhqk^#+^d{1@tcGJ;C2Pg5TIpRJ@hFd}B)?sGLwHr96sV##A_@Cg1&B|qu
+zzgZjB>9#OI{#9b{fLyaibN01wWG6`{_AwOx)yTCQ)Va;r8FS4Tuyxhz3x1oQ$ZPfi
+zC-1dWk%7n5E<Dc{{hs4aUfV<Uc7w?Wfw#Mdr-EL$F`8%-6uD@9ef`7I($eSOM0Y);
+TV*ug?00000NkvXXu0mjfG1`1o
+
+literal 0
+HcmV?d00001
+
+diff --git a/package/nvt-lvgl-wayland/nvt-lvgl-wayland.mk b/package/nvt-lvgl-wayland/nvt-lvgl-wayland.mk
+new file mode 100644
+index 0000000000..1a4ba5ae55
+--- /dev/null
++++ b/package/nvt-lvgl-wayland/nvt-lvgl-wayland.mk
+@@ -0,0 +1,42 @@
++################################################################################
++#
++# nvt-lvgl-wayland
++#
++################################################################################
++
++NVT_LVGL_WAYLAND_VERSION = 927d052510a240d0c1d14928fb6d01a2363ebce9
++NVT_LVGL_WAYLAND_SITE = https://github.com/lvgl/lv_port_linux.git
++NVT_LVGL_WAYLAND_SITE_METHOD = git
++NVT_LVGL_WAYLAND_GIT_SUBMODULES = YES
++NVT_LVGL_WAYLAND_INSTALL_STAGING = YES
++NVT_LVGL_WAYLAND_LICENSE = MIT
++NVT_LVGL_WAYLAND_LICENSE_FILES = LICENSE
++
++NVT_LVGL_WAYLAND_DEPENDENCIES = host-cmake wayland wayland-protocols
++
++define LVGL_GENERATE_WAYLAND_PROTOCOLS_CLIENT_FILES
++	mkdir -p $(@D)/lv_drivers/wayland/protocols && \
++	\
++	$(HOST_DIR)/bin/wayland-scanner private-code \
++	$(STAGING_DIR)/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml \
++	$(@D)/lv_drivers/wayland/protocols/xdg-shell-protocol.c && \
++	\
++	$(HOST_DIR)/bin/wayland-scanner client-header \
++	$(STAGING_DIR)/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml \
++	$(@D)/lv_drivers/wayland/protocols/xdg-shell-client-protocol.h
++endef
++NVT_LVGL_WAYLAND_PRE_CONFIGURE_HOOKS += LVGL_GENERATE_WAYLAND_PROTOCOLS_CLIENT_FILES
++
++define LVGL_TARGET_INSTALL_CMD
++	$(INSTALL) -m 0755 -D $(NVT_LVGL_WAYLAND_PKGDIR)/lvgl.png \
++        	$(TARGET_DIR)/usr/share/weston/lvgl.png
++endef
++NVT_LVGL_WAYLAND_POST_INSTALL_TARGET_HOOKS += LVGL_TARGET_INSTALL_CMD
++
++define LVGL_REMOVE_HEADER_FILES
++        rm -Rf $(TARGET_DIR)/usr/include/lvgl
++	rm -Rf $(TARGET_DIR)/usr/lib/pkgconfig
++endef
++NVT_LVGL_WAYLAND_POST_INSTALL_TARGET_HOOKS += LVGL_REMOVE_HEADER_FILES
++
++$(eval $(cmake-package))
+-- 
+2.43.0
+
