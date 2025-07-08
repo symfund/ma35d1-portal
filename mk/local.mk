@@ -1,8 +1,6 @@
-######################################################################################################################################
-#                                                                                                                                    #
-# Nuvoton Corporation 2024 (twjiang@nuvoton.com)                                                                                     #
-#                                                                                                                                    #
-######################################################################################################################################
+################################################################################
+# Nuvoton Corporation 2024 (twjiang@nuvoton.com)                               #
+################################################################################
 
 # Overriding packages source directory
 ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_ARM_TRUSTED_FIRMWARE_SRCDIR))
@@ -10,8 +8,13 @@ UBOOT_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_UBOOT_SRCDIR))
 OPTEE_OS_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_OPTEE_OS_SRCDIR))
 LINUX_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_LINUX_SRCDIR))
 
-# Buildroot 2016 must override the below 'LINUX_HEADERS_OVERRIDE_SRCDIR', uncomment it.
-#LINUX_HEADERS_OVERRIDE_SRCDIR=$(call qstrip,$(BR2_LINUX_SRCDIR))
+ifeq ($(BR2_KERNEL_HEADERS_AS_KERNEL),y)
+ifneq ($(LINUX_OVERRIDE_SRCDIR),)
+ifeq ($(BR2_VERSION),2016.11.1)
+LINUX_HEADERS_OVERRIDE_SRCDIR=$(LINUX_OVERRIDE_SRCDIR)
+endif
+endif
+endif
 
 ifeq ($(BR2_LINUX_KERNEL_USE_DEFCONFIG),y)
 ifndef BR2_LINUX_KERNEL_DEFCONFIG_FILE
@@ -141,7 +144,7 @@ endef
 export script = $(value _script)
 
 buildroot-save-config:
-	@echo ">>>>>>>>>> Saving Buildroot configuration <<<<<<<<<<"
+	@$(call MESSAGE,"Saving Buildroot configuration")
 	@make savedefconfig BR2_DEFCONFIG=$(BR2_DEFCONFIG)
 	@echo "Buildroot configuration was saved to $(BR2_DEFCONFIG)"
 
@@ -150,18 +153,17 @@ buildroot-update-source:
 	@until git pull; do echo "retry..."; done
 
 busybox-save-config:
-	@echo ">>>>>>>>>> Saving Busybox configuration <<<<<<<<<<"
+	@$(call MESSAGE,"Saving BusyBox configuration")
 	@make busybox-update-config
 	@echo "Busybox configuration was saved to $(BR2_PACKAGE_BUSYBOX_CONFIG_FILE)"
 
 uclibc-save-config:
-	@echo ">>>>>>>>>> Saving uClibc configuration <<<<<<<<<<"
+	@$(call MESSAGE,"Saving uClibc configuration")	
 	@make uclibc-update-config
 	@echo "uClibc configuration was saved to $(BR2_UCLIBC_CONFIG_FILE)"
 
 linux-save-config:
-	@echo ">>>>>>>>>> Saving Linux configuration <<<<<<<<<<"
-
+	@$(call MESSAGE,"Saving Linux configuration")
 	@if grep -Eq "^BR2_LINUX_KERNEL_USE_DEFCONFIG=y" $(BR2_CONFIG); then \
 		sed -i -e 's/BR2_LINUX_KERNEL_USE_DEFCONFIG=y/# BR2_LINUX_KERNEL_USE_DEFCONFIG is not set/' -i $(BR2_CONFIG); \
 		sed -i -e 's/# BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG is not set/BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y/' -i $(BR2_CONFIG); \
@@ -193,8 +195,7 @@ linux-update-source:
 	@if [[ -n "$(LINUX_OVERRIDE_SRCDIR)" ]]; then cd $(LINUX_OVERRIDE_SRCDIR); until git pull; do echo "retry..."; done; cd -; fi
 
 uboot-save-config:
-	@echo ">>>>>>>>>> Saving U-Boot configuration <<<<<<<<<<"
-	
+	@$(call MESSAGE,"Saving U-Boot configuration")	
 	@if grep -Eq "^BR2_TARGET_UBOOT_USE_DEFCONFIG=y" $(BR2_CONFIG); then \
 		echo "U-Boot uses default configuration file"; \
 		sed -i -e 's/BR2_TARGET_UBOOT_USE_DEFCONFIG=y/# BR2_TARGET_UBOOT_USE_DEFCONFIG is not set/' -i $(BR2_CONFIG); \
@@ -227,12 +228,9 @@ uboot-update-source:
 	@echo ">>>>>>>>>> Updating source of U-Boot <<<<<<<<<<"
 	@if [[ -n "$(UBOOT_OVERRIDE_SRCDIR)" ]]; then cd $(UBOOT_OVERRIDE_SRCDIR); until git pull; do echo "retry..."; done; cd -; fi
 
-# '$ make uboot-show-recursive-rdepends' produces the dependent packages of uboot reversely
-UBOOT_RDEPS=$$(make uboot-show-recursive-rdepends)
-
 uboot-alter-rebuild:
 	@make uboot-rebuild
-	@for pkg in $(UBOOT_RDEPS); do \
+	@for pkg in $$(make uboot-show-recursive-rdepends); do \
 		echo ">>>>>>>>>> Rebuilding $$pkg <<<<<<<<<<"; \
 		make $$pkg-rebuild; \
 	done 
@@ -277,7 +275,7 @@ all-update-source:
 	@echo "all sources updated done"
 
 all-save-config:
-	@echo ">>>>>>>>>> Saving all configurations <<<<<<<<<<"
+	@$(call MESSAGE,"Saving all configurations")
 	@make buildroot-save-config
 	@make uboot-save-config
 	@make linux-save-config
@@ -286,32 +284,33 @@ all-save-config:
 	@echo "All configurations are saved successfully."
 
 rootfs-clean:
-	@echo ">>>>>>>>>> Cleaning rootfs <<<<<<<<<<"
+	@$(call MESSAGE,"Cleaning rootfs")
 	@rm -Rf output/target; find output/build -name ".stamp_target_installed" | xargs rm -Rf
+	@mkdir -p output/target
 	@echo "rootfs cleaned done"
 
 rootfs-rebuild:
-	@echo ">>>>>>>>>> Rebuilding rootfs <<<<<<<<<<"
+	@$(call MESSAGE,"Rebuilding rootfs")
 	@make rootfs-clean
 	@if (( $(BR2_VERSION_EPOCH) < 1709640000 )) ; then make host-gcc-final-rebuild ; fi
+	@make
 	@echo "rootfs rebuilt done"
 
 all-clean:
-	@echo ">>>>>>>>>> Cleaning all <<<<<<<<<<"
+	@$(call MESSAGE,"Cleaning all")
 	@make rootfs-clean
-	@rm -Rf output/images
+	@rm -Rf output/images && mkdir output/images
 	@make uboot-dirclean arm-trusted-firmware-dirclean host-uboot-tools-dirclean linux-dirclean optee-os-dirclean
 	@echo "All clean done"
 
 all-rebuild:
-	@echo ">>>>>>>>>> Rebuilding all <<<<<<<<<<"
+	@$(call MESSAGE,"Rebuilding all")
 	@make all-clean
-	@mkdir -p output/target output/images
-	@make host-gcc-final-rebuild
+	@if (( $(BR2_VERSION_EPOCH) < 1709640000 )) ; then make host-gcc-final-rebuild ; fi
 	@make
 
 sdk-tool:
-	@echo ">>>>>>>>>> Making SDK <<<<<<<<<<"
+	@$(call MESSAGE,"Making SDK")
 	@echo "$(BR2_BIN_SH)" > .shell
 	@sed -i 's/BR2_INIT_BUSYBOX=y/# BR2_INIT_BUSYBOX is not set/g' $(BR2_CONFIG) 
 	@sed -i 's/# BR2_INIT_NONE is not set/BR2_INIT_NONE=y/g' $(BR2_CONFIG)
@@ -367,16 +366,25 @@ sdk-tool:
 	@make
 
 verbose:
+	@echo "O=$(O)"
+	@echo "TOPDIR=$(TOPDIR)"
+	@echo "CONFIG_DIR=$(CONFIG_DIR)"
+	@echo "BR2_DL_DIR=$(BR2_DL_DIR)"
+	@echo "BR2_UBOOT_CONFIG=$(BR2_UBOOT_CONFIG)"
+	@echo "TARGET_DIR=$(TARGET_DIR)"
 	@echo "ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR=$(ARM_TRUSTED_FIRMWARE_OVERRIDE_SRCDIR)"
 	@echo "UBOOT_OVERRIDE_SRCDIR=$(UBOOT_OVERRIDE_SRCDIR)"
 	@echo "OPTEE_OS_OVERRIDE_SRCDIR=$(OPTEE_OS_OVERRIDE_SRCDIR)"
 	@echo "LINUX_OVERRIDE_SRCDIR=$(LINUX_OVERRIDE_SRCDIR)"
+	@echo "LINUX_HEADERS_OVERRIDE_SRCDIR=$(LINUX_HEADERS_OVERRIDE_SRCDIR)"
+	@echo "BR2_LINUX_KERNEL_INTREE_DTS_NAME=$(BR2_LINUX_KERNEL_INTREE_DTS_NAME)"
 	@echo "BR2_DEFCONFIG=$(BR2_DEFCONFIG)"
 	@echo "BR2_CONFIG=$(BR2_CONFIG)"
 	@echo "BR2_BIN_SH=$(BR2_BIN_SH)"
 	@echo "BR2_LINUX_ARCH=$(BR2_LINUX_ARCH)"
 	@echo "BR2_LINUX_KERNEL_DEFCONFIG_SHORT_FILE=$(BR2_LINUX_KERNEL_DEFCONFIG_SHORT_FILE)"
 	@echo "BR2_LINUX_KERNEL_DEFCONFIG_FILE=$(BR2_LINUX_KERNEL_DEFCONFIG_FILE)"
+	@echo "BR2_LINUX_KERNEL_INTREE_DTS_NAME=$(BR2_LINUX_KERNEL_INTREE_DTS_NAME)"
 	@echo "BR2_UBOOT_DEFCONFIG_SHORT_FILE=$(BR2_UBOOT_DEFCONFIG_SHORT_FILE)"
 	@echo "BR2_UBOOT_DEFCONFIG_FILE=$(BR2_UBOOT_DEFCONFIG_FILE)"
 	@echo "BR2_TARGET_UBOOT_CUSTOM_TARBALL_LOCATION=$(BR2_TARGET_UBOOT_CUSTOM_TARBALL_LOCATION)"
